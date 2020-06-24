@@ -1,0 +1,37 @@
+version: "3"
+networks:
+  directus:
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    networks:
+      - directus
+    restart: unless-stopped
+  directus:
+    image: directus/directus:v8-apache
+    container_name: directus
+    ports:
+      - "8080:80"
+    environment:
+      DIRECTUS_APP_ENV: ${NODE_ENV}
+      DIRECTUS_AUTH_PUBLICKEY: ${DIRECTUS_AUTH_PUBLICKEY}
+      DIRECTUS_AUTH_SECRETKEY: ${DIRECTUS_AUTH_SECRETKEY}
+      DIRECTUS_DATABASE_HOST: "mysql"
+      DIRECTUS_DATABASE_PORT: "3306"
+      DIRECTUS_DATABASE_NAME: ${DIRECTUS_DATABASE_NAME}
+      DIRECTUS_DATABASE_USERNAME: ${DIRECTUS_DATABASE_USERNAME}
+      DIRECTUS_DATABASE_PASSWORD: ${DIRECTUS_DATABASE_PASSWORD}
+    volumes:
+      - ./data/config:/var/directus/config
+      - ./data/uploads:/var/directus/public/uploads    
+    networks:
+      - directus
+    restart: unless-stopped

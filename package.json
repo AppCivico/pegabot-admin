@@ -4,8 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "directus:build": "docker-compose up -d --build directus",
+    "directus:log": "docker logs directus -f",
+    "mysql:build": "docker-compose up -d --build mysql",
+    "mysql:log": "docker logs mysql -f"
   },
   "author": "Jordan Victor",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0"
+  }
 }
