@@ -2,9 +2,21 @@ version: "3"
 networks:
   directus:
 services:
+  app:
+    container_name: pegabot-app
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    # ports:
+      # - "1990:3000"
+    volumes:
+      - .:/home/node/app
+      - /home/node/app/node_modules
+    network_mode: "bridge"
   mysql:
     image: mysql:5.7
-    container_name: mysql
+    container_name: pegabot-mysql
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -17,7 +29,7 @@ services:
     restart: unless-stopped
   directus:
     image: directus/directus:v8-apache
-    container_name: directus
+    container_name: pegabot-directus
     ports:
       - "8080:80"
     environment:

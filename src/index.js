@@ -2,10 +2,8 @@ import 'dotenv/config';
 import { CronJob } from 'cron';
 import procedure from './app';
 
-console.log('CronJob', CronJob);
-
 const Cron = new CronJob(
-  '00 0-59/5 * * * *', async () => {
+  ' 00 0-59/5 * * * *', async () => {
     console.log('Running notificacao');
     try {
       console.log(await procedure());
@@ -16,5 +14,5 @@ const Cron = new CronJob(
   false, 'America/Sao_Paulo', false, false,
 );
 
-// Cron.start();
-// console.log(`Crontab notificacaoCron is running? => ${Cron.running}`);
+Cron.start();
+console.log(`Crontab notificacaoCron is running? => ${Cron.running}`);
