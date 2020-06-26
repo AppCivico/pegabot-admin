@@ -22,18 +22,6 @@ async function requestPegabot(profile) {
   }
 }
 
-async function getCSV() {
-  fs.readdir(inPath, (err, filenames) => {
-    if (err) { return err; }
-    filenames.forEach((filename) => {
-      fs.readFile(`${inPath}/${filename}`, 'utf-8', async (err, content) => {
-        if (err) { return err; }
-        await getResults(content, filename)
-      });
-    });
-  })
-}
-
 async function getResults(content, filename) {
   const csv = await neatCsv(content);
   const results = [];
@@ -51,12 +39,24 @@ async function getResults(content, filename) {
     }
   }
 
+  console.log('results', results);
   return results;
+}
+
+async function getCSV() {
+  fs.readdir(inPath, (err, filenames) => {
+    if (err) { return; }
+    filenames.forEach((filename) => {
+      fs.readFile(`${inPath}/${filename}`, 'utf-8', async (err2, content) => {
+        if (err2) { return; }
+        await getResults(content, filename);
+      });
+    });
+  });
 }
 
 async function procedure() {
   await getCSV();
 }
-
 
 export default procedure;

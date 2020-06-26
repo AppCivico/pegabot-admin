@@ -1,11 +1,14 @@
-import { writeFileSync } from 'fs';
+import fs from 'fs';
 import got from 'got';
 import DirectusSDK from '@directus/sdk-js';
+import AdmZip from 'adm-zip';
 
 const directusUrl = process.env.DIRECTUS_URL;
 const directusProject = process.env.DIRECTUS_PROJECT;
 const directusEmail = process.env.DIRECTUS_USER_EMAIL;
 const directusPass = process.env.DIRECTUS_USER_PASSWORD;
+
+const inPath = `${process.env.NODE_PATH}/in`;
 
 async function getDirectusClient() {
   const client = new DirectusSDK({
@@ -44,8 +47,22 @@ async function getFilesToProcess() {
 
 async function saveFilesToDisk(files) {
   for (const file of files) { // eslint-disable-line
+
+    if (file.filename_download.endsWith('.zip')) { // handle zip files
+      const res = await got(file.data.full_url, { responseType: 'buffer' }); // eslint-disable-line
+
+      const zip = new AdmZip(res.body); // load zip buffer
+      const zipEntries = zip.getEntries();
+
+      // rename files inside of zip to prefix the file id
+      zipEntries.forEach((entry) => { entry.entryName = `${file.id}_${entry.entryName}`; }); // eslint-disable-line no-param-reassign
+
+      zip.extractAllTo(inPath); // extract files from zip
+    } else if (file.filename_download.endsWith('.csv')) {
+      const newFilePath = `${inPath}/${file.id}_${file.filename_download}`;
     const res = await got(file.data.full_url); // eslint-disable-line
-    writeFileSync(`./in/${file.id}_${file.filename_download}`, res.body);
+      fs.writeFileSync(newFilePath, res.body);
+    }
   }
 }
 

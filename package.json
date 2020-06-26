@@ -33,6 +33,7 @@
     "@babel/preset-env": "^7.10.3",
     "@babel/register": "^7.10.3",
     "@directus/sdk-js": "^6.2.0",
+    "adm-zip": "^0.4.16",
     "babel-plugin-module-resolver": "^4.0.0",
     "chai": "^4.2.0",
     "cron": "^1.8.2",
@@ -45,6 +46,8 @@
   "devDependencies": {
     "eslint": "^7.3.1",
     "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-import-resolver-node": "^0.3.4"
+    "eslint-import-resolver-babel-module": "^5.1.2",
+    "eslint-import-resolver-node": "^0.3.4",
+    "eslint-plugin-import": "^2.21.2"
   }
 }
