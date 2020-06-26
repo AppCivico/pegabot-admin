@@ -20,8 +20,8 @@ module.exports = {
     'import/named': 'off',
   },
   settings: {
-    'import/resolver': {
-      'babel-module': {},
-    },
+    // 'import/resolver': {
+    //   'babel-module': {},
+    // },
   },
 };
