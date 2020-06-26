@@ -1,8 +1,9 @@
 import got from 'got';
 import neatCsv from 'neat-csv';
+import fs from 'fs';
 
-const csvLink = process.env.LINK_TO_CSV;
 const pegabotAPI = process.env.PEGABOT_API;
+const inPath = `${process.env.NODE_PATH}/in`;
 
 async function requestPegabot(profile) {
   const searchParams = {
@@ -22,21 +23,27 @@ async function requestPegabot(profile) {
 }
 
 async function getCSV() {
-  const response = await got(csvLink);
-  const csv = response.body;
-  const res = await neatCsv(csv);
-  return res;
+  fs.readdir(inPath, (err, filenames) => {
+    if (err) { return err; }
+    filenames.forEach((filename) => {
+      fs.readFile(`${inPath}/${filename}`, 'utf-8', async (err, content) => {
+        if (err) { return err; }
+        await getResults(content, filename)
+      });
+    });
+  })
 }
 
-async function getResults(csv) {
+async function getResults(content, filename) {
+  const csv = await neatCsv(content);
   const results = [];
   const errors = [];
 
   for (let i = 0; i < csv.length; i++) { // eslint-disable-line
     const line = csv[i];
     const screenName = line.screen_name;
-
     const result = await requestPegabot(screenName); // eslint-disable-line
+
     if (result && !result.error) {
       results.push(result);
     } else {
@@ -48,9 +55,8 @@ async function getResults(csv) {
 }
 
 async function procedure() {
-  const csvData = await getCSV();
-  const results = await getResults(csvData);
-  return results;
+  await getCSV();
 }
+
 
 export default procedure;
