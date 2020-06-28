@@ -95,5 +95,6 @@ build/
 
 .mysql-data/
 data/
-in/
-out/
+in/*
+tmp/*
+out/*
