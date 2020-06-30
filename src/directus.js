@@ -2,8 +2,11 @@ import fs from 'fs';
 import got from 'got';
 import DirectusSDK from '@directus/sdk-js';
 import AdmZip from 'adm-zip';
+import mailer from './mailer';
+import help from './helper';
 
-const myCollection = 'user_files';
+const userRequestsCollection = 'user_files';
+const emailLogCollection = 'email_log';
 
 const directusUrl = process.env.DIRECTUS_URL;
 const directusProject = process.env.DIRECTUS_PROJECT;
@@ -31,7 +34,7 @@ async function getFilesToProcess() {
   const client = await getDirectusClient();
 
   // search for files with status "waitin"
-  const toProcess = await client.getItems(myCollection, { filter: { status: { eq: 'waiting' } } });
+  const toProcess = await client.getItems(userRequestsCollection, { filter: { status: { eq: 'waiting' } } });
 
   // no files to process were found
   if (!toProcess || !toProcess.data || toProcess.data.length === 0) return null;
@@ -70,6 +73,39 @@ async function saveFilesToDisk(files) {
   }
 }
 
+async function sendMail(item, file) {
+  const client = await getDirectusClient();
+
+  const { email } = item;
+  // send e-mail with attachment
+  const mailSent = await mailer.sendEmail(email, 'seus resultados', 'seus resultados', [{
+    filename: file.filename,
+    content: file.content,
+  }]);
+
+  // format attributes to save on the email_log collection
+  const attributes = {
+    request_id: item.id, // the id of the requeste for analysis
+    file_id: item.result_file, // the result file id
+    sent_to: email,
+    sent_at: help.dateMysqlFormat(new Date()),
+    status: 'sent', // might be overwritten if something goes wrong
+  };
+
+  // save e-mail error
+  if (!mailSent || mailSent.error) {
+    attributes.status = 'error';
+    if (mailSent.error && mailSent.error.message) attributes.error = mailSent.error.message;
+  }
+
+  // save email log
+  const res = await client.createItem(emailLogCollection, attributes);
+
+  if (!res || !res.data) throw new Error('Could not save email log');
+
+  return attributes.status !== 'error';
+}
+
 async function saveFileToDirectus(fileName) {
   const client = await getDirectusClient();
 
@@ -86,13 +122,21 @@ async function saveFileToDirectus(fileName) {
   const fileID = fileData.data.id; // get the file id
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
 
-  const updatedItem = await client.updateItem(myCollection, itemID, { result_file: fileID, status: 'complete' });
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { result_file: fileID, status: 'complete' });
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
-    fs.unlinkSync(localfile);
+    if (updatedItem.data.email) { // if there's an e-mail set, send the result file to the e-mail
+      const canDelete = await sendMail(updatedItem.data,
+        { filename: newFileName, content: willSendthis });
+      // delete file from /out only if it was sent by e-mail successfully
+      if (canDelete) fs.unlinkSync(localfile);
+    } else {
+      fs.unlinkSync(localfile); // delete file from /out
+    }
   }
 }
 
+// save each file inside of the /out directory on direct
 async function getResults() {
   fs.readdir(outPath, (err, filenames) => {
     if (err) { return; }
