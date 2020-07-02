@@ -5,7 +5,7 @@ import AdmZip from 'adm-zip';
 import mailer from './mailer';
 import help from './helper';
 
-const userRequestsCollection = 'user_files';
+const userRequestsCollection = 'user_requests';
 const emailLogCollection = 'email_log';
 
 const directusUrl = process.env.DIRECTUS_URL;
@@ -30,6 +30,27 @@ async function getDirectusClient() {
   return client;
 }
 
+async function getCollections() { // eslint-disable-line
+  const client = await getDirectusClient();
+
+  const myCollections = [];
+  const { data: allCollections } = await client.getCollections();
+
+  allCollections.forEach((e) => { if (e.collection.includes('directus') === false) myCollections.push(e); });
+
+  return myCollections;
+}
+
+async function updateFileStatus(fileName) {
+  const client = await getDirectusClient();
+
+  const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'analysing' });
+  if (updatedItem && updatedItem.data && updatedItem.data.id) return;
+  throw Error('Could not update item', { itemID, fileName, updatedItem });
+}
+
 async function getFilesToProcess() {
   const client = await getDirectusClient();
 
@@ -44,7 +65,7 @@ async function getFilesToProcess() {
 
   // get details of all the files we want
   toProcess.data.forEach((e) => {
-    const currentFile = allFiles.find((x) => x.id === e.file);
+    const currentFile = allFiles.find((x) => x.id === e.input_file);
     currentFile.itemID = e.id;
     desiredFiles.push(currentFile);
   });
@@ -122,7 +143,8 @@ async function saveFileToDirectus(fileName) {
   const fileID = fileData.data.id; // get the file id
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
 
-  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { result_file: fileID, status: 'complete' });
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'complete', output_file: fileID });
+
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
     if (updatedItem.data.email) { // if there's an e-mail set, send the result file to the e-mail
@@ -152,4 +174,4 @@ async function populateIn() {
   if (files) await saveFilesToDisk(files);
 }
 
-export default { populateIn, getResults };
+export default { populateIn, getResults, updateFileStatus };

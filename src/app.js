@@ -1,17 +1,22 @@
 import got from 'got';
 import neatCsv from 'neat-csv';
 import fs from 'fs';
+import directus from './directus';
 
 const pegabotAPI = process.env.PEGABOT_API;
 const inPath = `${process.env.NODE_PATH}/in`;
+const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
 
 function convertResultsToCSV(data) {
-  const csv = ['screenname, results'];
+  const csv = ['screenname, total, url, avatar'];
   const keys = Object.keys(data);
   keys.forEach((screenname) => {
-    const results = JSON.stringify(data[screenname]);
-    const aux = `${screenname}, ${results}`;
+    const results = data[screenname].profiles[0];
+    const { url } = results;
+    const { avatar } = results;
+    const total = results.bot_probability.all;
+    const aux = `${screenname}, ${total}, ${url}, ${avatar}`;
     csv.push(aux);
   });
 
@@ -63,13 +68,17 @@ async function getResults(content, filename) {
   return { filename, data: results };
 }
 
-async function getCSV() {
+async function getOutputCSV() {
   fs.readdir(inPath, (err, filenames) => {
     if (err) { return; }
-    filenames.forEach((filename) => {
-      fs.readFile(`${inPath}/${filename}`, 'utf-8', async (err2, content) => {
+    filenames.forEach(async (filename) => {
+      const newPath = `${tmpPath}/${filename}`;
+      await fs.renameSync(`${inPath}/${filename}`, newPath); // move from /in to /tmp
+      fs.readFile(newPath, 'utf-8', async (err2, content) => {
         if (err2) { return; }
+        await directus.updateFileStatus(filename);
         const result = await getResults(content, filename);
+
         await saveResult(result);
       });
     });
@@ -77,7 +86,7 @@ async function getCSV() {
 }
 
 async function procedure() {
-  await getCSV();
+  await getOutputCSV();
 }
 
 export default procedure;
