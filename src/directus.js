@@ -87,7 +87,7 @@ async function saveFilesToDisk(files) {
 
       zip.extractAllTo(inPath); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
-      const newFilePath = `${inPath}/${file.id}_${file.filename_download}`;
+      const newFilePath = `${inPath}/${file.itemID}_${file.filename_download}`;
       const res = await got(file.data.full_url); // eslint-disable-line
       fs.writeFileSync(newFilePath, res.body);
     }
@@ -171,7 +171,10 @@ async function getResults() {
 
 async function populateIn() {
   const files = await getFilesToProcess();
+  console.log('files', files);
   if (files) await saveFilesToDisk(files);
 }
 
-export default { populateIn, getResults, updateFileStatus };
+export default {
+  populateIn, getResults, saveFileToDirectus, updateFileStatus,
+};

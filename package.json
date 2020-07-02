@@ -9,6 +9,8 @@
     "lint": "npx eslint . --ext .js",
     "test": "npm run lint && npm run test:integration",
     "test:integration": "mocha ./test/**/*.spec.js --require @babel/register",
+    "api:build": "docker-compose up -d --build api",
+    "api:log": "docker logs pegabot-admin-api -f",
     "directus:build": "docker-compose up -d --build directus",
     "directus:log": "docker logs pegabot-directus -f",
     "mysql:build": "docker-compose up -d --build mysql",

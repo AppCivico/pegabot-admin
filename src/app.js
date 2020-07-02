@@ -26,12 +26,13 @@ function convertResultsToCSV(data) {
 async function saveResult(result) {
   const { data, filename } = result;
   const content = convertResultsToCSV(data);
-
   const newFilename = filename.replace('.', '_results.');
-  fs.writeFileSync(`${outPath}/${newFilename}`, content);
+  const filepath = `${outPath}/${newFilename}`;
+  fs.writeFileSync(filepath, content);
+  return newFilename;
 }
 
-async function requestPegabot(profile) {
+async function requestPegabot(profile = 'twitter') {
   const searchParams = {
     socialnetwork: 'twitter',
     search_for: 'profile',
@@ -57,7 +58,7 @@ async function getResults(content, filename) {
     const line = csv[i];
     const screenName = line.screen_name;
     const result = await requestPegabot(screenName); // eslint-disable-line
-
+    console.log('result', result);
     if (result && !result.error) {
       results[screenName] = result;
     } else {
@@ -70,23 +71,30 @@ async function getResults(content, filename) {
 
 async function getOutputCSV() {
   fs.readdir(inPath, (err, filenames) => {
+    console.log('lendo diretorio');
     if (err) { return; }
     filenames.forEach(async (filename) => {
       const newPath = `${tmpPath}/${filename}`;
       await fs.renameSync(`${inPath}/${filename}`, newPath); // move from /in to /tmp
+      console.log('newPath', newPath);
       fs.readFile(newPath, 'utf-8', async (err2, content) => {
         if (err2) { return; }
         await directus.updateFileStatus(filename);
         const result = await getResults(content, filename);
-
-        await saveResult(result);
+        console.log('result', result);
+        const filepath = await saveResult(result);
+        await directus.saveFileToDirectus(filepath);
       });
     });
+    console.log('acaba foreach');
   });
+
+  console.log('acaba readirr');
 }
 
 async function procedure() {
+  await directus.populateIn();
   await getOutputCSV();
 }
 
-export default procedure;
+export default { procedure };
