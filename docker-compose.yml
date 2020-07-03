@@ -1,9 +1,9 @@
-version: "3"
+version: "2"
 networks:
   directus:
 services:
   app:
-    container_name: pegabot-app
+    container_name: pegabot-admin-app
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -12,8 +12,8 @@ services:
     expose: 
       - "3150"
     volumes:
-      - .:/home/node/app
-      - /home/node/app/node_modules
+      - .:/home/node/app_pegabots_admon
+      - /home/node/app_pegabots_admon/node_modules
     networks:
       - directus
     restart: unless-stopped
@@ -27,8 +27,8 @@ services:
     expose: 
       - "3100"
     volumes:
-      - .:/home/node/app_api
-      - /home/node/app_api/node_modules
+      - .:/home/node/app_pegabots_api
+      - /home/node/app_pegabots_api/node_modules
     networks:
       - directus
     restart: unless-stopped

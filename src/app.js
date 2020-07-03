@@ -26,9 +26,11 @@ function convertResultsToCSV(data) {
 async function saveResult(result) {
   const { data, filename } = result;
   const content = convertResultsToCSV(data);
+
   const newFilename = filename.replace('.', '_results.');
   const filepath = `${outPath}/${newFilename}`;
-  fs.writeFileSync(filepath, content);
+  await fs.writeFileSync(filepath, content);
+  await fs.unlinkSync(`${tmpPath}/${filename}`);
   return newFilename;
 }
 
@@ -95,6 +97,7 @@ async function getOutputCSV() {
 async function procedure() {
   await directus.populateIn();
   await getOutputCSV();
+  await directus.getResults();
 }
 
 export default { procedure };

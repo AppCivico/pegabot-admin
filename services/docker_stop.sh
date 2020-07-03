@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-docker stop pegabot-app
+docker stop pegabot-admin-app
