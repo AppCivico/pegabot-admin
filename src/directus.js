@@ -30,6 +30,14 @@ async function getDirectusClient() {
   return client;
 }
 
+async function saveError(fileName, errors) {
+  const client = await getDirectusClient();
+  const itemID = fileName.substr(0, fileName.indexOf('_'));
+  const error = errors && JSON.stringify(errors) ? JSON.stringify(errors) : 'Erro desconhecido';
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
+  console.log('updatedItem', updatedItem);
+}
+
 async function getCollections() { // eslint-disable-line
   const client = await getDirectusClient();
 
@@ -176,5 +184,5 @@ async function populateIn() {
 }
 
 export default {
-  populateIn, getResults, saveFileToDirectus, updateFileStatus,
+  populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError,
 };

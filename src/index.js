@@ -1,10 +1,9 @@
 import 'dotenv/config';
 import { CronJob } from 'cron';
 import app from './app';
-import directus from './directus';
 
 const Cron = new CronJob(
-  ' 00 0-59/5 * * * *', async () => {
+  ' 00 0-59/1 * * * *', async () => {
     console.log('Running notificacao');
     try {
       console.log(await app.procedure());

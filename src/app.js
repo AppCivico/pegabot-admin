@@ -34,7 +34,7 @@ async function saveResult(result) {
   return newFilename;
 }
 
-async function requestPegabot(profile = 'twitter') {
+async function requestPegabot(profile) {
   const searchParams = {
     socialnetwork: 'twitter',
     search_for: 'profile',
@@ -44,7 +44,9 @@ async function requestPegabot(profile = 'twitter') {
   };
 
   try {
+    console.log('Fazendo a req');
     const result = await got(`${pegabotAPI}/botometer`, { searchParams, responseType: 'json' });
+    if (!result.body || (result.body && result.body.error)) throw new Error({ msg: 'Algo deu errado com a request para o pegabots', body: result.body, searchParams });
     return result.body;
   } catch (error) {
     return { error };
@@ -60,14 +62,14 @@ async function getResults(content, filename) {
     const line = csv[i];
     const screenName = line.screen_name;
     const result = await requestPegabot(screenName); // eslint-disable-line
-    console.log('result', result);
     if (result && !result.error) {
       results[screenName] = result;
     } else {
-      errors.push({ line: i, error: result && result.error ? result.error : '' });
+      errors.push({ line: i, error: result && result.error ? `Erro ao analisar ${screenName}:\n${result.error}` : '' });
     }
   }
 
+  if (errors.length > 0) return { filename, errors };
   return { filename, data: results };
 }
 
@@ -78,20 +80,21 @@ async function getOutputCSV() {
     filenames.forEach(async (filename) => {
       const newPath = `${tmpPath}/${filename}`;
       await fs.renameSync(`${inPath}/${filename}`, newPath); // move from /in to /tmp
-      console.log('newPath', newPath);
+
       fs.readFile(newPath, 'utf-8', async (err2, content) => {
         if (err2) { return; }
         await directus.updateFileStatus(filename);
         const result = await getResults(content, filename);
         console.log('result', result);
-        const filepath = await saveResult(result);
-        await directus.saveFileToDirectus(filepath);
+        if (result && !result.errors) {
+          const filepath = await saveResult(result);
+          await directus.saveFileToDirectus(filepath);
+        } else {
+          await directus.saveError(result.filename, result.errors);
+        }
       });
     });
-    console.log('acaba foreach');
   });
-
-  console.log('acaba readirr');
 }
 
 async function procedure() {
