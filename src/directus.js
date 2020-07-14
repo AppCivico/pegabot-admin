@@ -137,7 +137,6 @@ async function sendMail(item, file) {
 
 async function saveFileToDirectus(fileName) {
   const client = await getDirectusClient();
-
   const localfile = `${outPath}/${fileName}`;
   const zip = new AdmZip(); // create archive
   await zip.addLocalFile(localfile); // add local file
@@ -150,8 +149,8 @@ async function saveFileToDirectus(fileName) {
 
   const fileID = fileData.data.id; // get the file id
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
-
-  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'complete', output_file: fileID });
+  const analysisDate = help.dateMysqlFormat(new Date());
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'complete', output_file: fileID, analysis_date: analysisDate });
 
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
@@ -168,13 +167,11 @@ async function saveFileToDirectus(fileName) {
 
 // save each file inside of the /out directory on direct
 async function getResults() {
-  fs.readdir(outPath, (err, filenames) => {
-    if (err) { return; }
-
-    filenames.forEach(async (fileName) => {
-      await saveFileToDirectus(fileName);
-    });
-  });
+  const fileNames = await fs.readdirSync(outPath);
+  for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
+    const fileName = fileNames[i];
+    await saveFileToDirectus(fileName); // eslint-disable-line
+  }
 }
 
 async function populateIn() {

@@ -61,6 +61,7 @@ async function getResults(content, filename) {
   for (let i = 0; i < csv.length; i++) { // eslint-disable-line
     const line = csv[i];
     const screenName = line.screen_name;
+
     const result = await requestPegabot(screenName); // eslint-disable-line
     if (result && !result.error) {
       results[screenName] = result;
@@ -73,28 +74,36 @@ async function getResults(content, filename) {
   return { filename, data: results };
 }
 
-async function getOutputCSV() {
-  fs.readdir(inPath, (err, filenames) => {
-    console.log('lendo diretorio');
-    if (err) { return; }
-    filenames.forEach(async (filename) => {
-      const newPath = `${tmpPath}/${filename}`;
-      await fs.renameSync(`${inPath}/${filename}`, newPath); // move from /in to /tmp
+async function sendInToOut() {
+  const fileNames = await fs.readdirSync(inPath);
+  for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
+    const filename = fileNames[i];
 
-      fs.readFile(newPath, 'utf-8', async (err2, content) => {
-        if (err2) { return; }
-        await directus.updateFileStatus(filename);
-        const result = await getResults(content, filename);
-        console.log('result', result);
-        if (result && !result.errors) {
-          const filepath = await saveResult(result);
-          await directus.saveFileToDirectus(filepath);
-        } else {
-          await directus.saveError(result.filename, result.errors);
-        }
-      });
-    });
-  });
+    // move from /in to /tmp
+    const newPath = `${tmpPath}/${filename}`;
+    await fs.renameSync(`${inPath}/${filename}`, newPath); // eslint-disable-line
+  }
+}
+
+async function getOutputCSV() {
+  await sendInToOut();
+  const fileNames = await fs.readdirSync(tmpPath);
+    for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
+    const filename = fileNames[i];
+
+    const newPath = `${tmpPath}/${filename}`;
+    const content = await fs.readFileSync(newPath, 'utf-8'); // eslint-disable-line
+
+    await directus.updateFileStatus(filename); // eslint-disable-line
+    const result = await getResults(content, filename); // eslint-disable-line
+
+    if (result && !result.errors) {
+      const filepath = await saveResult(result); // eslint-disable-line
+      await directus.saveFileToDirectus(filepath); // eslint-disable-line
+    } else {
+      await directus.saveError(result.filename, result.errors); // eslint-disable-line
+    }
+  }
 }
 
 async function procedure() {
