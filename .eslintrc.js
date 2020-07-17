@@ -18,6 +18,16 @@ module.exports = {
   rules: {
     'no-console': 'off',
     'import/named': 'off',
+    'max-len': [
+      'error',
+      150,
+      {
+        code: 120,
+        ignoreUrls: true,
+        ignoreStrings: true,
+        ignoreTemplateLiterals: true,
+      },
+    ],
   },
   settings: {
     // 'import/resolver': {

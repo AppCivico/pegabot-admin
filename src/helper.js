@@ -17,4 +17,12 @@ function dateMysqlFormat(data) {
   return `${data.getUTCFullYear()}-${twoDigits(1 + data.getUTCMonth())}-${twoDigits(data.getUTCDate())} ${twoDigits(data.getUTCHours())}:${twoDigits(data.getUTCMinutes())}:${twoDigits(data.getUTCSeconds())}`;
 }
 
-export default { dateMysqlFormat };
+function checkValue(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'undefined') return null;
+  if (value === null) return null;
+  return null;
+}
+
+export default { dateMysqlFormat, checkValue };

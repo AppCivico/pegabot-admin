@@ -1,7 +1,9 @@
 import got from 'got';
 import neatCsv from 'neat-csv';
+import { parseAsync } from 'json2csv';
 import fs from 'fs';
 import directus from './directus';
+import helper from './helper';
 
 const pegabotAPI = process.env.PEGABOT_API;
 const inPath = `${process.env.NODE_PATH}/in`;
@@ -9,18 +11,27 @@ const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
 
 function convertResultsToCSV(data) {
-  const csv = ['screenname, total, url, avatar'];
+  const csv = [];
   const keys = Object.keys(data);
   keys.forEach((screenname) => {
     const results = data[screenname].profiles[0];
-    const { url } = results;
-    const { avatar } = results;
-    const total = results.bot_probability.all;
-    const aux = `${screenname}, ${total}, ${url}, ${avatar}`;
+    const aux = { screenname, total: results.bot_probability.all };
+
+    const langDep = results.language_dependent;
+    if (langDep && langDep.sentiment) aux.sentiment = helper.checkValue(langDep.sentiment.value);
+
+    const langInd = results.language_independent;
+    aux.friend = helper.checkValue(langInd.friend);
+    aux.temporal = helper.checkValue(langInd.temporal);
+    aux.network = helper.checkValue(langInd.network);
+    aux.user = helper.checkValue(langInd.user);
+
+    aux.url = results.url;
+    aux.avatar = results.avatar;
     csv.push(aux);
   });
 
-  return csv.join('\n');
+  return csv;
 }
 
 async function saveResult(result) {
@@ -29,7 +40,7 @@ async function saveResult(result) {
 
   const newFilename = filename.replace('.', '_results.');
   const filepath = `${outPath}/${newFilename}`;
-  await fs.writeFileSync(filepath, content);
+  await fs.writeFileSync(filepath, await parseAsync(content));
   await fs.unlinkSync(`${tmpPath}/${filename}`);
   return newFilename;
 }
