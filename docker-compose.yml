@@ -12,8 +12,8 @@ services:
     expose: 
       - "3150"
     volumes:
-      - .:/home/node/app_pegabots_admon
-      - /home/node/app_pegabots_admon/node_modules
+      - .:/home/node/app_pegabots_admin
+      - /home/node/app_pegabots_admin/node_modules
     networks:
       - directus
     restart: unless-stopped
