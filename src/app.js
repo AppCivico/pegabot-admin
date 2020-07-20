@@ -71,7 +71,7 @@ async function getResults(content, filename) {
 
   for (let i = 0; i < csv.length; i++) { // eslint-disable-line
     const line = csv[i];
-    const screenName = line.screen_name;
+    const screenName = line.perfil;
 
     const result = await requestPegabot(screenName); // eslint-disable-line
     if (result && !result.error) {
