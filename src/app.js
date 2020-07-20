@@ -90,8 +90,8 @@ async function getResults(content, filename) {
 
   for (let i = 0; i < csv.length; i++) { // eslint-disable-line
     const line = csv[i];
-    // perfil is the name of the first CSV column
-    const screenName = line.perfil;
+    // perfil is the name of the first CSV column (we also accept screen_name as the column name)
+    const screenName = line.perfil || line.screen_name;
     const result = await requestPegabot(screenName); // eslint-disable-line
     if (result && !result.error) {
       results[screenName] = result;
