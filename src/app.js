@@ -33,9 +33,9 @@ function convertResultsToCSV(data) {
     aux['URL do Perfil'] = results.url;
     aux['Avatar do Perfil'] = results.avatar;
 
-    aux['ID do Usuário'] = twitterData.user_id;
+    aux['ID do Usuário'] = `"${twitterData.user_id}"`;
     aux['Nome do Usuário'] = twitterData.user_name;
-    aux['Criação da Conta'] = twitterData.created_at;
+    aux['Criação da Conta'] = helper.dateMysqlFormat(new Date(twitterData.created_at));
     aux.Seguindo = twitterData.following;
     aux.Seguidores = twitterData.followers;
     aux['Número de Tweets'] = twitterData.number_tweets;
