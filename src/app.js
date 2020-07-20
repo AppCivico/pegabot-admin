@@ -16,28 +16,31 @@ function convertResultsToCSV(data) {
   keys.forEach((screenname) => {
     const results = data[screenname].profiles[0];
     const twitterData = data[screenname].twitter_data;
-    const aux = { screenname, total: results.bot_probability.all };
+    const aux = {};
 
-    const langDep = results.language_dependent;
-    if (langDep && langDep.sentiment) aux.sentiment = helper.checkValue(langDep.sentiment.value);
+    aux['Perfil Twitter'] = screenname;
+    aux['Análise Total'] = results.bot_probability.all;
 
     const langInd = results.language_independent;
-    aux.friend = helper.checkValue(langInd.friend);
-    aux.temporal = helper.checkValue(langInd.temporal);
-    aux.network = helper.checkValue(langInd.network);
-    aux.user = helper.checkValue(langInd.user);
+    aux['Análise Usuário'] = helper.checkValue(langInd.user);
+    aux['Análise Amigos'] = helper.checkValue(langInd.friend);
+    aux['Análise Temporal'] = helper.checkValue(langInd.temporal);
+    aux['Análise Rede'] = helper.checkValue(langInd.network);
 
-    aux.url = results.url;
-    aux.avatar = results.avatar;
+    const langDep = results.language_dependent;
+    if (langDep && langDep.sentiment) aux['Análise Sentimento'] = helper.checkValue(langDep.sentiment.value);
 
-    aux.user_id = twitterData.user_id;
-    aux.user_name = twitterData.user_name;
-    aux.account_creation = twitterData.created_at;
-    aux.following = twitterData.following;
-    aux.followers = twitterData.followers;
-    aux.number_tweets = twitterData.number_tweets;
-    aux.hashtags = twitterData.hashtags;
-    aux.mentions = twitterData.mentions;
+    aux['URL do Perfil'] = results.url;
+    aux['Avatar do Perfil'] = results.avatar;
+
+    aux['ID do Usuário'] = twitterData.user_id;
+    aux['Nome do Usuário'] = twitterData.user_name;
+    aux['Criação da Conta'] = twitterData.created_at;
+    aux.Seguindo = twitterData.following;
+    aux.Seguidores = twitterData.followers;
+    aux['Número de Tweets'] = twitterData.number_tweets;
+    aux['Hashtags Recentes'] = twitterData.hashtags;
+    aux['Menções Recentes'] = twitterData.mentions;
 
     csv.push(aux);
   });
