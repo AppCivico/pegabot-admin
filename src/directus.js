@@ -14,6 +14,7 @@ const directusEmail = process.env.DIRECTUS_USER_EMAIL;
 const directusPass = process.env.DIRECTUS_USER_PASSWORD;
 
 const inPath = `${process.env.NODE_PATH}/in`;
+const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
 
 async function getDirectusClient() {
@@ -35,7 +36,8 @@ async function saveError(fileName, errors) {
   const itemID = fileName.substr(0, fileName.indexOf('_'));
   const error = errors && JSON.stringify(errors) ? JSON.stringify(errors) : 'Erro desconhecido';
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
-  console.log('updatedItem', updatedItem);
+  console.log('erro updatedItem', updatedItem);
+  fs.unlinkSync(`${tmpPath}/${fileName}`);
 }
 
 async function getCollections() { // eslint-disable-line

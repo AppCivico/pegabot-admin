@@ -70,12 +70,16 @@ async function requestPegabot(profile) {
   };
 
   try {
-    console.log('Fazendo a req');
+    console.log('Fazendo a req para', profile);
     const result = await got(`${pegabotAPI}/botometer`, { searchParams, responseType: 'json' });
-    if (!result.body || (result.body && result.body.error)) throw new Error({ msg: 'Algo deu errado com a request para o pegabots', body: result.body, searchParams });
     return result.body;
   } catch (error) {
-    return { error };
+    return {
+      error,
+      msg: 'Algo deu errado com a request para o pegabot',
+      body: error.response || error,
+      searchParams,
+    };
   }
 }
 
@@ -88,7 +92,6 @@ async function getResults(content, filename) {
     const line = csv[i];
     // perfil is the name of the first CSV column
     const screenName = line.perfil;
-
     const result = await requestPegabot(screenName); // eslint-disable-line
     if (result && !result.error) {
       results[screenName] = result;
