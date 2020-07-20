@@ -85,7 +85,7 @@ async function getResults(content, filename) {
   return { filename, data: results };
 }
 
-async function sendInToOut() {
+async function sendInToTmp() {
   const fileNames = await fs.readdirSync(inPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const filename = fileNames[i];
@@ -97,7 +97,7 @@ async function sendInToOut() {
 }
 
 async function getOutputCSV() {
-  await sendInToOut();
+  await sendInToTmp();
   const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const filename = fileNames[i];

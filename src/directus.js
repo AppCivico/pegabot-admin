@@ -104,10 +104,11 @@ async function saveFilesToDisk(files) {
 
 async function sendMail(item, file) {
   const client = await getDirectusClient();
+  const mailData = mailer.mailText.results;
 
   const { email } = item;
   // send e-mail with attachment
-  const mailSent = await mailer.sendEmail(email, 'seus resultados', 'seus resultados', [{
+  const mailSent = await mailer.sendEmail(email, mailData.subject, mailData.body, [{
     filename: file.filename,
     content: file.content,
   }]);
@@ -155,8 +156,7 @@ async function saveFileToDirectus(fileName) {
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
     if (updatedItem.data.email) { // if there's an e-mail set, send the result file to the e-mail
-      const canDelete = await sendMail(updatedItem.data,
-        { filename: newFileName, content: willSendthis });
+      const canDelete = await sendMail(updatedItem.data, { filename: newFileName, content: willSendthis });
       // delete file from /out only if it was sent by e-mail successfully
       if (canDelete) fs.unlinkSync(localfile);
     } else {
