@@ -13,8 +13,9 @@ function twoDigits(d) {
  * to apply this to more than one Date object, having it as a prototype
  * makes sense.
  * */
-function dateMysqlFormat(data) {
-  return `${data.getUTCFullYear()}-${twoDigits(1 + data.getUTCMonth())}-${twoDigits(data.getUTCDate())} ${twoDigits(data.getUTCHours())}:${twoDigits(data.getUTCMinutes())}:${twoDigits(data.getUTCSeconds())}`;
+function dateMysqlFormat(date) {
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); // remove timezone from date
+  return `${date.getUTCFullYear()}-${twoDigits(1 + date.getUTCMonth())}-${twoDigits(date.getUTCDate())} ${twoDigits(date.getUTCHours())}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())}`;
 }
 
 function checkValue(value) {
