@@ -15,6 +15,7 @@ function convertResultsToCSV(data) {
   const keys = Object.keys(data);
   keys.forEach((screenname) => {
     const results = data[screenname].profiles[0];
+    const twitterData = data[screenname].twitter_data;
     const aux = { screenname, total: results.bot_probability.all };
 
     const langDep = results.language_dependent;
@@ -28,6 +29,16 @@ function convertResultsToCSV(data) {
 
     aux.url = results.url;
     aux.avatar = results.avatar;
+
+    aux.user_id = twitterData.user_id;
+    aux.user_name = twitterData.user_name;
+    aux.account_creation = twitterData.created_at;
+    aux.following = twitterData.following;
+    aux.followers = twitterData.followers;
+    aux.number_tweets = twitterData.number_tweets;
+    aux.hashtags = twitterData.hashtags;
+    aux.mentions = twitterData.mentions;
+
     csv.push(aux);
   });
 
@@ -52,6 +63,7 @@ async function requestPegabot(profile) {
     limit: 1,
     authenticated: false,
     profile,
+    getData: true,
   };
 
   try {
@@ -71,6 +83,7 @@ async function getResults(content, filename) {
 
   for (let i = 0; i < csv.length; i++) { // eslint-disable-line
     const line = csv[i];
+    // perfil is the name of the first CSV column
     const screenName = line.perfil;
 
     const result = await requestPegabot(screenName); // eslint-disable-line
