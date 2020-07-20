@@ -14,7 +14,7 @@ function twoDigits(d) {
  * makes sense.
  * */
 function dateMysqlFormat(date) {
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); // remove timezone from date
+  date.setMinutes(date.getMinutes() - 180); // remove timezone from date
   return `${date.getUTCFullYear()}-${twoDigits(1 + date.getUTCMonth())}-${twoDigits(date.getUTCDate())} ${twoDigits(date.getUTCHours())}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())}`;
 }
 
