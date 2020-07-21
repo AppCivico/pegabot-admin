@@ -3,6 +3,7 @@ import got from 'got';
 import DirectusSDK from '@directus/sdk-js';
 import AdmZip from 'adm-zip';
 import mailer from './mailer';
+import redis from './redis';
 import help from './helper';
 
 const userRequestsCollection = 'user_requests';
@@ -40,6 +41,11 @@ async function getOneFile(fileID) {
   return myFile;
 }
 
+async function resetRedis(fileName) {
+  await redis.set(`${fileName}_results`, '');
+  await redis.set(`${fileName}_error`, '');
+}
+
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
@@ -47,6 +53,7 @@ async function saveError(fileName, errors) {
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
   console.log('erro updatedItem', updatedItem);
   fs.unlinkSync(`${tmpPath}/${fileName}`);
+  await resetRedis(fileName);
 }
 
 async function getCollections() { // eslint-disable-line
@@ -186,6 +193,7 @@ async function saveFileToDirectus(fileName) {
     } else {
       fs.unlinkSync(localfile); // delete file from /out
     }
+    await resetRedis(fileName);
   }
 }
 

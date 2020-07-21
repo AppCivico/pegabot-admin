@@ -2,6 +2,7 @@ import got from 'got';
 import neatCsv from 'neat-csv';
 import { parseAsync } from 'json2csv';
 import fs from 'fs';
+import redis from './redis';
 import directus from './directus';
 import helper from './helper';
 
@@ -9,6 +10,17 @@ const pegabotAPI = process.env.PEGABOT_API;
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
+
+async function sendInToTmp() {
+  const fileNames = await fs.readdirSync(inPath);
+  for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
+    const filename = fileNames[i];
+
+    // move from /in to /tmp
+    const newPath = `${tmpPath}/${filename}`;
+    await fs.renameSync(`${inPath}/${filename}`, newPath); // eslint-disable-line
+  }
+}
 
 function convertResultsToCSV(data) {
   const csv = [];
@@ -84,38 +96,42 @@ async function requestPegabot(profile) {
 }
 
 async function getResults(content, filename) {
-  const results = {};
-  const errors = [];
+  let results = {};
+  const resultKey = `${filename}_results`;
+  const errorKey = `${filename}_error`;
   try {
     const csv = await neatCsv(content);
+
+    // check if we already analysed a part of this file
+    const oldResult = await redis.get(resultKey);
+    // save string result as json
+    if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
     for (let i = 0; i < csv.length; i++) { // eslint-disable-line
       const line = csv[i];
       const screenName = line.perfil || line.screen_name;
 
-      const result = await requestPegabot(screenName); // eslint-disable-line
-      if (result && !result.error) {
-        results[screenName] = result;
-      } else {
-        errors.push({ line: i, error: result && result.error ? `Erro ao analisar handle ${screenName}:\n${result.error}` : '' });
-        throw new Error('Erro ao realizar a análise');
+      //  if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
+      if (screenName && !results[screenName]) {
+      // make request to the pegabotAPI
+      const reqAnswer = await requestPegabot(screenName); // eslint-disable-line
+
+        if (reqAnswer && !reqAnswer.error) {
+          results[screenName] = reqAnswer;
+        } else {
+        // save the last error on redis
+          const error = { line: i, error: reqAnswer && reqAnswer.error ? `Erro ao analisar handle ${screenName}:\n${reqAnswer.error}` : '' };
+          await redis.set(errorKey, JSON.stringify(error)); // eslint-disable-line no-await-in-loop
+          // also save the results we have so far on redis
+          await redis.set(resultKey, JSON.stringify(results)); // eslint-disable-line no-await-in-loop
+          throw new Error('Erro ao realizar a análise');
+        }
       }
     }
 
     return { filename, data: results };
   } catch (error) {
-    return { filename, error, errors };
-  }
-}
-
-async function sendInToTmp() {
-  const fileNames = await fs.readdirSync(inPath);
-  for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
-    const filename = fileNames[i];
-
-    // move from /in to /tmp
-    const newPath = `${tmpPath}/${filename}`;
-    await fs.renameSync(`${inPath}/${filename}`, newPath); // eslint-disable-line
+    return { filename, error, errors: await redis.get(errorKey) };
   }
 }
 
@@ -127,7 +143,6 @@ async function getOutputCSV() {
 
     // get status of the item this file is supposed to represent
     const { status: fileStatus } = await directus.getFileItem(filename); // eslint-disable-line no-await-in-loop
-
     // if file is being analysed right now, ignore it
     if (fileStatus !== 'analysing') {
       const newPath = `${tmpPath}/${filename}`;
