@@ -84,24 +84,28 @@ async function requestPegabot(profile) {
 }
 
 async function getResults(content, filename) {
-  const csv = await neatCsv(content);
   const results = {};
   const errors = [];
+  try {
+    const csv = await neatCsv(content);
 
-  for (let i = 0; i < csv.length; i++) { // eslint-disable-line
-    const line = csv[i];
-    // perfil is the name of the first CSV column (we also accept screen_name as the column name)
-    const screenName = line.perfil || line.screen_name;
-    const result = await requestPegabot(screenName); // eslint-disable-line
-    if (result && !result.error) {
-      results[screenName] = result;
-    } else {
-      errors.push({ line: i, error: result && result.error ? `Erro ao analisar handle ${screenName}:\n${result.error}` : '' });
+    for (let i = 0; i < csv.length; i++) { // eslint-disable-line
+      const line = csv[i];
+      const screenName = line.perfil || line.screen_name;
+
+      const result = await requestPegabot(screenName); // eslint-disable-line
+      if (result && !result.error) {
+        results[screenName] = result;
+      } else {
+        errors.push({ line: i, error: result && result.error ? `Erro ao analisar handle ${screenName}:\n${result.error}` : '' });
+        throw new Error('Erro ao realizar a análise');
+      }
     }
-  }
 
-  if (errors.length > 0) return { filename, errors };
-  return { filename, data: results };
+    return { filename, data: results };
+  } catch (error) {
+    return { filename, error, errors };
+  }
 }
 
 async function sendInToTmp() {

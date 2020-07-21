@@ -116,8 +116,9 @@ async function saveFilesToDisk(files) {
 async function sendMail(item, filelink) {
   const client = await getDirectusClient();
 
+  // set actual host for the file
   const newFileLink = process.env.DIRECTUS_HOST + filelink;
-  console.log('newFileLink', newFileLink);
+
   // copy texts and add file link to body
   const mailData = JSON.parse(JSON.stringify(mailer.mailText.results));
   mailData.body = mailData.body.replace('<FILE_LINK>', newFileLink);
