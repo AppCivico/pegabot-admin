@@ -60,6 +60,15 @@ async function getCollections() { // eslint-disable-line
   return myCollections;
 }
 
+async function getFileItem(fileName) {
+  const client = await getDirectusClient();
+
+  const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+
+  const found = await client.getItem(userRequestsCollection, itemID);
+  return found.data;
+}
+
 async function updateFileStatus(fileName) {
   const client = await getDirectusClient();
 
@@ -196,5 +205,5 @@ async function populateIn() {
 }
 
 export default {
-  populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError,
+  populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError, getFileItem,
 };

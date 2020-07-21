@@ -125,17 +125,23 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const filename = fileNames[i];
 
-    const newPath = `${tmpPath}/${filename}`;
-    const content = await fs.readFileSync(newPath, 'utf-8'); // eslint-disable-line
+    // get status of the item this file is supposed to represent
+    const { status: fileStatus } = await directus.getFileItem(filename); // eslint-disable-line no-await-in-loop
 
-    await directus.updateFileStatus(filename); // eslint-disable-line
-    const result = await getResults(content, filename); // eslint-disable-line
+    // if file is being analysed right now, ignore it
+    if (fileStatus !== 'analysing') {
+      const newPath = `${tmpPath}/${filename}`;
+      const content = await fs.readFileSync(newPath, 'utf-8'); // eslint-disable-line no-await-in-loop
 
-    if (result && !result.errors) {
-      const filepath = await saveResult(result); // eslint-disable-line
-      await directus.saveFileToDirectus(filepath); // eslint-disable-line
-    } else {
-      await directus.saveError(result.filename, result.errors); // eslint-disable-line
+      await directus.updateFileStatus(filename); // eslint-disable-line no-await-in-loop
+      const result = await getResults(content, filename); // eslint-disable-line no-await-in-loop
+
+      if (result && !result.errors) {
+        const filepath = await saveResult(result); // eslint-disable-line no-await-in-loop
+        await directus.saveFileToDirectus(filepath); // eslint-disable-line no-await-in-loop
+      } else {
+        await directus.saveError(result.filename, result.errors); // eslint-disable-line no-await-in-loop
+      }
     }
   }
 }
