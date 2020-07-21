@@ -96,7 +96,7 @@ async function getResults(content, filename) {
     if (result && !result.error) {
       results[screenName] = result;
     } else {
-      errors.push({ line: i, error: result && result.error ? `Erro ao analisar ${screenName}:\n${result.error}` : '' });
+      errors.push({ line: i, error: result && result.error ? `Erro ao analisar handle ${screenName}:\n${result.error}` : '' });
     }
   }
 

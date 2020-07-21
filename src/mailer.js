@@ -34,7 +34,7 @@ async function sendEmail(to, subject, html, attachments = []) {
 const mailText = {
   results: {
     subject: 'Pegabot - Sua Análise está pronta!',
-    body: 'Olá!\nAqui estão os resultados da última análise do Pegabots.\nBaixe o anexo.',
+    body: 'Olá!\nAqui estão os resultados da última análise do Pegabots.\n\nBaixe no link: <FILE_LINK>',
   },
 };
 

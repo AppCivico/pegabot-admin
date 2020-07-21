@@ -31,6 +31,15 @@ async function getDirectusClient() {
   return client;
 }
 
+async function getOneFile(fileID) {
+  const client = await getDirectusClient();
+
+  const { data: allFiles } = await client.getFiles();
+
+  const myFile = await allFiles.find((x) => x.id === fileID);
+  return myFile;
+}
+
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
@@ -104,16 +113,15 @@ async function saveFilesToDisk(files) {
   }
 }
 
-async function sendMail(item, file) {
+async function sendMail(item, filelink) {
   const client = await getDirectusClient();
-  const mailData = mailer.mailText.results;
 
+  // copy texts and add file link to body
+  const mailData = JSON.parse(JSON.stringify(mailer.mailText.results));
+  mailData.body = mailData.body.replace('<FILE_LINK>', filelink);
   const { email } = item;
-  // send e-mail with attachment
-  const mailSent = await mailer.sendEmail(email, mailData.subject, mailData.body, [{
-    filename: file.filename,
-    content: file.content,
-  }]);
+
+  const mailSent = await mailer.sendEmail(email, mailData.subject, mailData.body);
 
   // format attributes to save on the email_log collection
   const attributes = {
@@ -157,8 +165,10 @@ async function saveFileToDirectus(fileName) {
 
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
-    if (updatedItem.data.email) { // if there's an e-mail set, send the result file to the e-mail
-      const canDelete = await sendMail(updatedItem.data, { filename: newFileName, content: willSendthis });
+    const file = await getOneFile(updatedItem.data.output_file);
+    // if there's an e-mail set, send the result file to the e-mail
+    if (updatedItem.data.email && file && file.data && file.data.full_url) {
+      const canDelete = await sendMail(updatedItem.data, file.data.full_url);
       // delete file from /out only if it was sent by e-mail successfully
       if (canDelete) fs.unlinkSync(localfile);
     } else {
