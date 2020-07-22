@@ -76,12 +76,12 @@ async function getFileItem(fileName) {
   return found.data;
 }
 
-async function updateFileStatus(fileName) {
+async function updateFileStatus(fileName, newStatus) {
   const client = await getDirectusClient();
 
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
 
-  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'analysing' });
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: newStatus });
   if (updatedItem && updatedItem.data && updatedItem.data.id) return;
   throw Error('Could not update item', { itemID, fileName, updatedItem });
 }

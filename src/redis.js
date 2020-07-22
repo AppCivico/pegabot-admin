@@ -12,7 +12,7 @@ redisClient.on('error', (error) => {
 });
 
 redisClient.on('connect', () => {
-  console.log('Redis cliente connected');
+  console.log('Redis client connected');
 });
 
 export default {
