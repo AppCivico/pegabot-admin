@@ -11,7 +11,7 @@ const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
 
-const rateLimitMaximum = 15;
+const rateLimitMaximum = process.env.RATE_LIMIT_MAXIMUM;
 const nextExecutionKey = 'next_execution';
 
 async function sendInToTmp() {
@@ -138,7 +138,7 @@ async function getResults(content, filename) {
 
           // check if we reached the rateLimitMaximum
           if (rateLimit.remaining <= rateLimitMaximum) {
-            await saveResultsForLater(resultKey, results, rateLimit.waitTime); // eslint-disable-line no-await-in-loop
+            await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
             // return this so that caller funciton stops execution and break current loop
             waitTime = true;
             break;
@@ -168,7 +168,7 @@ async function getOutputCSV() {
   const getNextExecution = await redis.get(nextExecutionKey);
   if (getNextExecution) nextExecutionTime = new Date(getNextExecution);
 
-  if (!nextExecutionTime || now > nextExecutionTime) {
+  if (!nextExecutionTime || !helper.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
     const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];

@@ -1,6 +1,7 @@
 version: "2"
 networks:
   directus:
+  redis:
 services:
   app:
     container_name: pegabot-admin-app
@@ -16,6 +17,7 @@ services:
       - /home/node/app_pegabots_admin/node_modules
     networks:
       - directus
+      - redis
     restart: unless-stopped
   api:
     container_name: pegabot-admin-api
@@ -66,8 +68,13 @@ services:
       - directus
     restart: unless-stopped
   redis:
-    image: "redis:alpine"
+    image: "redis"
     container_name: pegabot-redis
-    command: "redis-server --requirepass ${REDIS_PASSWORD}"
+    command: "redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}"
+    volumes:
+    - ./redis.conf:/usr/local/etc/redis/redis.conf
     ports:
-     - "${REDIS_PORT}:6379"
+     - "${REDIS_PORT}:${REDIS_PORT}"
+    restart: unless-stopped
+    networks:
+      - redis

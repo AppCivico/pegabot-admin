@@ -26,4 +26,8 @@ function checkValue(value) {
   return null;
 }
 
-export default { dateMysqlFormat, checkValue };
+function isValidDate(d) {
+  return d instanceof Date && !isNaN(d); // eslint-disable-line
+}
+
+export default { dateMysqlFormat, checkValue, isValidDate };
