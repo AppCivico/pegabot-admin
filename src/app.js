@@ -11,7 +11,7 @@ const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
 
-const rateLimitMaximum = process.env.RATE_LIMIT_MAXIMUM;
+const rateLimitMaximum = process.env.RATE_LIMIT_MAXIMUM ? parseInt(process.env.RATE_LIMIT_MAXIMUM, 10) : 10;
 const nextExecutionKey = 'next_execution';
 
 async function sendInToTmp() {
@@ -135,9 +135,10 @@ async function getResults(content, filename) {
         if (reqAnswer && !reqAnswer.error) {
           results[screenName] = reqAnswer;
           rateLimit = reqAnswer.rate_limit;
+          const remaining = rateLimit.remaining ? parseInt(rateLimit.remaining, 10) : 0;
 
           // check if we reached the rateLimitMaximum
-          if (rateLimit.remaining <= rateLimitMaximum) {
+          if (remaining <= rateLimitMaximum) {
             await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
             // return this so that caller funciton stops execution and break current loop
             waitTime = true;
