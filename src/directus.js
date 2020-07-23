@@ -49,7 +49,7 @@ async function resetRedis(fileName) {
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
-  const error = errors && JSON.stringify(errors) ? JSON.stringify(errors) : 'Erro desconhecido';
+  const error = help.formatErrorMsg(errors);
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
   console.log('erro updatedItem', updatedItem);
   fs.unlinkSync(`${tmpPath}/${fileName}`);

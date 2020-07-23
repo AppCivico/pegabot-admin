@@ -30,4 +30,23 @@ function isValidDate(d) {
   return d instanceof Date && !isNaN(d); // eslint-disable-line
 }
 
-export default { dateMysqlFormat, checkValue, isValidDate };
+function formatErrorMsg(errors) {
+  let text = '';
+
+  errors.forEach((e) => {
+    let aux = '';
+    if (e.line && e.error) {
+      aux = `Linha: ${e.line} - ${e.error}`;
+    } else {
+      aux = e;
+    }
+
+    text += aux;
+  });
+
+  return text;
+}
+
+export default {
+  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg,
+};

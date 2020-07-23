@@ -115,6 +115,7 @@ async function getResults(content, filename) {
   let waitTime = false;
   const resultKey = `${filename}_results`;
   const errorKey = `${filename}_error`;
+  const allErrors = [];
   try {
     const csv = await neatCsv(content);
 
@@ -145,9 +146,12 @@ async function getResults(content, filename) {
             break;
           }
         } else {
-        // save the last error on redis
-          const error = { line: i, error: reqAnswer && reqAnswer.error ? `Erro ao analisar handle ${screenName}:\n${reqAnswer.error}` : '' };
+          // save the last error on redis
+          const error = { line: i, error: `Erro ao analisar handle ${screenName}` };
+          if (reqAnswer && reqAnswer.error) error.error += ` - ${reqAnswer.error}`;
+          allErrors.push(error);
           await redis.set(errorKey, JSON.stringify(error)); // eslint-disable-line no-await-in-loop
+
           throw new Error('Erro ao realizar a análise');
         }
       }
@@ -157,7 +161,7 @@ async function getResults(content, filename) {
     if (waitTime) return { waitTime };
     return { filename, data: results };
   } catch (error) {
-    return { filename, error, errors: await redis.get(errorKey) };
+    return { filename, error, errors: allErrors };
   }
 }
 
