@@ -47,6 +47,15 @@ function formatErrorMsg(errors) {
   return text;
 }
 
+function checkInvalidFiles(fileName) {
+  if (!fileName || typeof fileName !== 'string') return true;
+  const invalidStrings = ['__MACOSX', '._'];
+  const hasInvalidStrings = invalidStrings.some((v) => fileName.includes(v));
+  const endsWithCSV = fileName.endsWith('.csv');
+
+  return hasInvalidStrings || !endsWithCSV;
+}
+
 export default {
-  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg,
+  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles,
 };

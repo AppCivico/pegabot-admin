@@ -4,7 +4,7 @@ import { parseAsync } from 'json2csv';
 import fs from 'fs';
 import redis from './redis';
 import directus from './directus';
-import helper from './helper';
+import help from './helper';
 
 const pegabotAPI = process.env.PEGABOT_API;
 const inPath = `${process.env.NODE_PATH}/in`;
@@ -18,10 +18,25 @@ async function sendInToTmp() {
   const fileNames = await fs.readdirSync(inPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const filename = fileNames[i];
+    const oldPath = `${inPath}/${filename}`;
 
-    // move from /in to /tmp
-    const newPath = `${tmpPath}/${filename}`;
-    await fs.renameSync(`${inPath}/${filename}`, newPath); // eslint-disable-line
+    const stat = await fs.lstatSync(oldPath); // eslint-disable-line
+    const isDirectory = stat.isDirectory();
+
+    if (isDirectory) {
+      fs.rmdirSync(oldPath, { recursive: true }); // if its a dir, delete it
+    } else {
+      const isInvalidFile = help.checkInvalidFiles(filename);
+
+      // if file is invalid, delete it
+      if (isInvalidFile) {
+        fs.unlinkSync(oldPath);
+      } else {
+      // move from /in to /tmp
+        const newPath = `${tmpPath}/${filename}`;
+        fs.renameSync(`${inPath}/${filename}`, newPath);
+      }
+    }
   }
 }
 
@@ -37,20 +52,20 @@ function convertResultsToCSV(data) {
     aux['Análise Total'] = results.bot_probability.all;
 
     const langInd = results.language_independent;
-    aux['Análise Usuário'] = helper.checkValue(langInd.user);
-    aux['Análise Amigos'] = helper.checkValue(langInd.friend);
-    aux['Análise Temporal'] = helper.checkValue(langInd.temporal);
-    aux['Análise Rede'] = helper.checkValue(langInd.network);
+    aux['Análise Usuário'] = help.checkValue(langInd.user);
+    aux['Análise Amigos'] = help.checkValue(langInd.friend);
+    aux['Análise Temporal'] = help.checkValue(langInd.temporal);
+    aux['Análise Rede'] = help.checkValue(langInd.network);
 
     const langDep = results.language_dependent;
-    if (langDep && langDep.sentiment) aux['Análise Sentimento'] = helper.checkValue(langDep.sentiment.value);
+    if (langDep && langDep.sentiment) aux['Análise Sentimento'] = help.checkValue(langDep.sentiment.value);
 
     aux['URL do Perfil'] = results.url;
     aux['Avatar do Perfil'] = results.avatar;
 
     aux['ID do Usuário'] = `"${twitterData.user_id}"`;
     aux['Nome do Usuário'] = twitterData.user_name;
-    aux['Criação da Conta'] = helper.dateMysqlFormat(new Date(twitterData.created_at));
+    aux['Criação da Conta'] = help.dateMysqlFormat(new Date(twitterData.created_at));
     aux.Seguindo = twitterData.following;
     aux.Seguidores = twitterData.followers;
     aux['Número de Tweets'] = twitterData.number_tweets;
@@ -173,7 +188,7 @@ async function getOutputCSV() {
   const getNextExecution = await redis.get(nextExecutionKey);
   if (getNextExecution) nextExecutionTime = new Date(getNextExecution);
 
-  if (!nextExecutionTime || !helper.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
+  if (!nextExecutionTime || !help.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
     const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
