@@ -118,7 +118,17 @@ async function saveFilesToDisk(files) {
       const zipEntries = zip.getEntries();
 
       // rename files inside of zip to prefix the item id
-      zipEntries.forEach((entry) => { entry.entryName = `${file.itemID}_${entry.entryName}`; }); // eslint-disable-line no-param-reassign
+      zipEntries.forEach((entry, i) => {
+        const { entryName } = entry;
+
+        const hasForbiddenStrings = ['__MACOSX', '._'].some((v) => entryName.includes(v));
+
+        if (entryName.endsWith('.csv') && !hasForbiddenStrings) {
+          entry.entryName = `${file.itemID}_${entryName}`; // eslint-disable-line no-param-reassign
+        } else {
+          delete zipEntries[i]; // remove unwanted files
+        }
+      });
 
       zip.extractAllTo(inPath); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
