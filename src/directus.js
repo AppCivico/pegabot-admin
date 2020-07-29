@@ -1,5 +1,5 @@
 import fs from 'fs';
-import got from 'axios';
+import axios from 'axios';
 import DirectusSDK from '@directus/sdk-js';
 import AdmZip from 'adm-zip';
 import mailer from './mailer';
@@ -114,9 +114,9 @@ async function saveFilesToDisk(files) {
   for (const file of files) { // eslint-disable-line
 
     if (file.filename_download.endsWith('.zip')) { // handle zip files
-      const res = await got(file.data.full_url, { responseType: 'buffer' }); // eslint-disable-line
+      const res = await axios(file.data.full_url, { responseType: 'arraybuffer' }); // eslint-disable-line
 
-      const zip = new AdmZip(res.body); // load zip buffer
+      const zip = new AdmZip(res.data); // load zip buffer
       const zipEntries = zip.getEntries();
 
       zipEntries.forEach((entry, i) => {
@@ -134,7 +134,7 @@ async function saveFilesToDisk(files) {
       zip.extractAllTo(inPath); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
       const newFilePath = `${inPath}/${file.itemID}_${file.filename_download}`;
-      const res = await got(file.data.full_url); // eslint-disable-line
+      const res = await axios(file.data.full_url, { responseType: 'arraybuffer' }); // eslint-disable-line
       fs.writeFileSync(newFilePath, res.body);
     }
   }
