@@ -1,5 +1,5 @@
 import fs from 'fs';
-import got from 'got';
+import got from 'axios';
 import DirectusSDK from '@directus/sdk-js';
 import AdmZip from 'adm-zip';
 import mailer from './mailer';
@@ -49,10 +49,9 @@ async function resetRedis(fileName) {
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
-  console.log('errors', errors);
   const error = help.formatErrorMsg(errors);
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
-  console.log('erro updatedItem', updatedItem);
+  console.log('updatedItemError', updatedItem);
   fs.unlinkSync(`${tmpPath}/${fileName}`);
   await resetRedis(fileName);
 }
@@ -102,8 +101,10 @@ async function getFilesToProcess() {
   // get details of all the files we want
   toProcess.data.forEach((e) => {
     const currentFile = allFiles.find((x) => x.id === e.input_file);
-    currentFile.itemID = e.id;
-    desiredFiles.push(currentFile);
+    if (currentFile) {
+      currentFile.itemID = e.id;
+      desiredFiles.push(currentFile);
+    }
   });
 
   return desiredFiles;
@@ -175,13 +176,14 @@ async function sendMail(item, filelink) {
   return attributes.status !== 'error';
 }
 
-async function saveFileToDirectus(fileName) {
+async function saveFileToDirectus(fileName, errors = {}) {
   const client = await getDirectusClient();
   const localfile = `${outPath}/${fileName}`;
   const zip = new AdmZip(); // create archive
   await zip.addLocalFile(localfile); // add local file
   const willSendthis = zip.toBuffer(); // get everything as a buffer
   const newFileName = fileName.replace('csv', 'zip');
+  const error = help.formatErrorMsg(errors);
 
   const fileData = await client.uploadFiles({
     title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
@@ -190,7 +192,9 @@ async function saveFileToDirectus(fileName) {
   const fileID = fileData.data.id; // get the file id
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   const analysisDate = help.dateMysqlFormat(new Date());
-  const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'complete', output_file: fileID, analysis_date: analysisDate });
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
+    status: 'complete', output_file: fileID, analysis_date: analysisDate, error,
+  });
 
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {

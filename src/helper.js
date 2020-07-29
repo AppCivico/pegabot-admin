@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 /**
  * You first need to create a formatting function to pad numbers to two digits…
  * */
@@ -35,8 +37,8 @@ function formatErrorMsg(errors) {
 
   errors.forEach((e) => {
     let aux = '';
-    if (typeof e.line === 'number' && e.error) {
-      aux = `Linha: ${e.line} - ${e.error}`;
+    if (typeof e.line === 'number' && e.msg) {
+      aux = `Linha: ${e.line + 2} - ${e.msg}\n\n`;
     } else {
       aux = e;
     }
@@ -56,6 +58,42 @@ function checkInvalidFiles(fileName) {
   return hasInvalidStrings || !endsWithCSV;
 }
 
+function handleRequestError(error) {
+  const response = error.response ? error.response : {};
+  const { data } = response;
+
+  if (!data || !data.metadata) return error.toString();
+
+  const erro = data.metadata.error[0] || {};
+  if (erro.code === 34) return 'Esse usuário não existe';
+  if (erro.code === 88) return 'Chegamos no rate limit';
+  if (data && JSON.stringify(data)) return JSON.stringify(data);
+  return 'Erro da api desconhecido';
+}
+
+async function requestPegabot(profile) {
+  const pegabotAPI = process.env.PEGABOT_API;
+
+  const searchParams = {
+    socialnetwork: 'twitter',
+    search_for: 'profile',
+    limit: 1,
+    authenticated: false,
+    profile,
+    getData: true,
+  };
+
+  try {
+    console.log('Fazendo request para ', profile);
+    const result = await axios({ url: `${pegabotAPI}/botometer`, method: 'get', params: searchParams });
+    return result.data;
+  } catch (error) {
+    const msg = handleRequestError(error);
+    console.log('Request error: ', msg);
+    return { error, msg, searchParams };
+  }
+}
+
 export default {
-  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles,
+  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles, requestPegabot,
 };

@@ -1,4 +1,3 @@
-import got from 'got';
 import neatCsv from 'neat-csv';
 import { parseAsync } from 'json2csv';
 import fs from 'fs';
@@ -6,7 +5,6 @@ import redis from './redis';
 import directus from './directus';
 import help from './helper';
 
-const pegabotAPI = process.env.PEGABOT_API;
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
@@ -89,30 +87,6 @@ async function saveResult(result) {
   return newFilename;
 }
 
-async function requestPegabot(profile) {
-  const searchParams = {
-    socialnetwork: 'twitter',
-    search_for: 'profile',
-    limit: 1,
-    authenticated: false,
-    profile,
-    getData: true,
-  };
-
-  try {
-    console.log('Fazendo a req para', profile);
-    const result = await got(`${pegabotAPI}/botometer`, { searchParams, responseType: 'json' });
-    return result.body;
-  } catch (error) {
-    return {
-      error,
-      msg: 'Algo deu errado com a request para o pegabot',
-      body: error.response || error,
-      searchParams,
-    };
-  }
-}
-
 async function saveResultsForLater(resultKey, results, waitTime) {
   // save the results we have so far on redis
   await redis.set(resultKey, JSON.stringify(results));
@@ -126,6 +100,7 @@ async function saveResultsForLater(resultKey, results, waitTime) {
 
 async function getResults(content, filename) {
   let results = {};
+  let hasOneResult = false;
   let rateLimit = {};
   let waitTime = false;
   const resultKey = `${filename}_results`;
@@ -146,35 +121,39 @@ async function getResults(content, filename) {
       //  if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
       if (screenName && !results[screenName]) {
       // make request to the pegabotAPI
-        const reqAnswer = await requestPegabot(screenName); // eslint-disable-line no-await-in-loop
+        const reqAnswer = await help.requestPegabot(screenName); // eslint-disable-line no-await-in-loop
 
         if (reqAnswer && !reqAnswer.error) {
           results[screenName] = reqAnswer;
-          rateLimit = reqAnswer.rate_limit;
-          const remaining = rateLimit.remaining ? parseInt(rateLimit.remaining, 10) : 0;
+          hasOneResult = true;
 
-          // check if we reached the rateLimitMaximum
-          if (remaining <= rateLimitMaximum) {
-            await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
-            // return this so that caller funciton stops execution and break current loop
-            waitTime = true;
-            break;
+          const newRateLimit = reqAnswer.rate_limit;
+          if (newRateLimit && newRateLimit.remaining) {
+            rateLimit = newRateLimit;
+            const remaining = rateLimit.remaining ? parseInt(rateLimit.remaining, 10) : 10;
+
+            // check if we reached the rateLimitMaximum
+            if (remaining <= rateLimitMaximum) {
+              await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
+              // return this so that caller funciton stops execution and break current loop
+              waitTime = true;
+              break;
+            }
           }
         } else {
-          // save the last error on redis
-          const error = { line: i, error: `Erro ao analisar handle ${screenName}` };
-          if (reqAnswer && reqAnswer.error) error.error += ` - ${reqAnswer.error}`;
-          allErrors.push(error);
-          await redis.set(errorKey, JSON.stringify(error)); // eslint-disable-line no-await-in-loop
-
-          throw new Error('Erro ao realizar a análise');
+          const error = { line: i, msg: `Erro ao analisar handle ${screenName}`, error: reqAnswer };
+          if (reqAnswer && reqAnswer.msg) error.msg += ` - ${reqAnswer.msg}`; // add erro detail on msg
+          allErrors.push(error); // store all errors
+          await redis.set(errorKey, JSON.stringify(allErrors)); // eslint-disable-line no-await-in-loop
         }
       }
     }
 
     // return that we have to wait for time to pass
     if (waitTime) return { waitTime };
-    return { filename, data: results };
+    return {
+      filename, data: results, errors: allErrors, hasOneResult,
+    };
   } catch (error) {
     return { filename, error, errors: allErrors };
   }
@@ -206,9 +185,9 @@ async function getOutputCSV() {
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
 
-        if (result && !result.errors) {
+        if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result); // eslint-disable-line no-await-in-loop
-          await directus.saveFileToDirectus(filepath); // eslint-disable-line no-await-in-loop
+          await directus.saveFileToDirectus(filepath, result.errors); // eslint-disable-line no-await-in-loop
         } else {
           await directus.saveError(result.filename, result.errors); // eslint-disable-line no-await-in-loop
         }
