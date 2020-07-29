@@ -35,7 +35,7 @@ function formatErrorMsg(errors) {
 
   errors.forEach((e) => {
     let aux = '';
-    if (e.line && e.error) {
+    if (typeof e.line === 'number' && e.error) {
       aux = `Linha: ${e.line} - ${e.error}`;
     } else {
       aux = e;

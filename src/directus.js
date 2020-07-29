@@ -49,6 +49,7 @@ async function resetRedis(fileName) {
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
+  console.log('errors', errors);
   const error = help.formatErrorMsg(errors);
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
   console.log('erro updatedItem', updatedItem);
