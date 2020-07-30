@@ -62,7 +62,7 @@ function convertResultsToCSV(data) {
     aux['Avatar do Perfil'] = results.avatar;
 
     aux['ID do Usuário'] = `"${twitterData.user_id}"`;
-    aux['Nome do Usuário'] = twitterData.user_name;
+    aux['Nome do Usuário'] = twitterData.user_name;
     aux['Criação da Conta'] = help.dateMysqlFormat(new Date(twitterData.created_at));
     aux.Seguindo = twitterData.following;
     aux.Seguidores = twitterData.followers;
@@ -82,7 +82,7 @@ async function saveResult(result) {
 
   const newFilename = filename.replace('.', '_results.');
   const filepath = `${outPath}/${newFilename}`;
-  await fs.writeFileSync(filepath, await parseAsync(content));
+  await fs.writeFileSync(filepath, await parseAsync(content), 'utf8');
   await fs.unlinkSync(`${tmpPath}/${filename}`);
   return newFilename;
 }
@@ -203,5 +203,7 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
+
+getOutputCSV();
 
 export default { procedure };
