@@ -106,8 +106,11 @@ async function getResults(content, filename) {
   const resultKey = `${filename}_results`;
   const errorKey = `${filename}_error`;
   const allErrors = [];
+
   try {
-    const csv = await neatCsv(content);
+    const csv = await neatCsv(content, {
+      mapHeaders: ({ header }) => header.toLowerCase(),
+    });
 
     // check if we already analysed a part of this file
     const oldResult = await redis.get(resultKey);
@@ -116,14 +119,14 @@ async function getResults(content, filename) {
 
     for (let i = 0; i < csv.length; i++) { // eslint-disable-line
       const line = csv[i];
-      const screenName = line.perfil || line.screen_name;
+      const screenName = line.perfil || line.perfis || line.screen_name || line.screenname || line.user || line.users;
 
       //  if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
       if (screenName && !results[screenName]) {
       // make request to the pegabotAPI
         const reqAnswer = await help.requestPegabot(screenName); // eslint-disable-line no-await-in-loop
 
-        if (reqAnswer && !reqAnswer.error) {
+        if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
           results[screenName] = reqAnswer;
           hasOneResult = true;
 
@@ -159,6 +162,8 @@ async function getResults(content, filename) {
   }
 }
 
+const itemStatuses = {};
+
 async function getOutputCSV() {
   await sendInToTmp();
 
@@ -172,15 +177,18 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
 
-      // get status of the item this file is supposed to represent
-      const { status: fileStatus } = await directus.getFileItem(filename); // eslint-disable-line no-await-in-loop
+      const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
-      if (fileStatus !== 'analysing') {
+      if (!analysedNow) {
+        itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
         const content = await fs.readFileSync(newPath, 'utf-8'); // eslint-disable-line no-await-in-loop
 
-        await directus.updateFileStatus(filename, 'analysing'); // eslint-disable-line no-await-in-loop
+        const { status: fileStatus } = await directus.getFileItem(filename); // eslint-disable-line no-await-in-loop
+        // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
+        if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');// eslint-disable-line no-await-in-loop
         const result = await getResults(content, filename); // eslint-disable-line no-await-in-loop
+        itemStatuses[filename] = false;
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
@@ -203,7 +211,5 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
-
-getOutputCSV();
 
 export default { procedure };

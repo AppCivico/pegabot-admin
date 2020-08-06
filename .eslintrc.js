@@ -30,8 +30,8 @@ module.exports = {
     ],
   },
   settings: {
-    // 'import/resolver': {
-    //   'babel-module': {},
-    // },
+    'import/resolver': {
+      'babel-module': {},
+    },
   },
 };
