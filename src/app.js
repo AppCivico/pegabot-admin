@@ -69,6 +69,7 @@ function convertResultsToCSV(data) {
     aux['Número de Tweets'] = twitterData.number_tweets;
     aux['Hashtags Recentes'] = twitterData.hashtags;
     aux['Menções Recentes'] = twitterData.mentions;
+    aux['Usou Cache'] = twitterData.usedCache ? 'Sim' : 'Não';
 
     csv.push(aux);
   });
