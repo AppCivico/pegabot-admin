@@ -145,7 +145,7 @@ async function getResults(content, filename) {
             }
           }
         } else {
-          const error = { line: i, msg: `Erro ao analisar handle ${screenName}`, error: reqAnswer };
+          const error = { line: i, msg: `Erro ao analisar handle "${screenName}"`, error: reqAnswer };
           if (reqAnswer && reqAnswer.msg) error.msg += ` - ${reqAnswer.msg}`; // add erro detail on msg
           allErrors.push(error); // store all errors
           await redis.set(errorKey, JSON.stringify(allErrors)); // eslint-disable-line no-await-in-loop
@@ -212,5 +212,7 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
+
+getOutputCSV();
 
 export default { procedure };

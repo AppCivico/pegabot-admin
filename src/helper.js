@@ -64,9 +64,13 @@ function handleRequestError(error) {
 
   if (!data || !data.metadata) return error.toString();
 
-  const erro = data.metadata.error[0] || {};
+  let erro = data.metadata.error[0] || {};
   if (erro.code === 34) return 'Esse usuário não existe';
   if (erro.code === 88) return 'Chegamos no rate limit';
+
+  erro = data.metadata.error || {};
+  if (erro.request === '/1.1/statuses/user_timeline.json' && erro.error === 'Not authorized.') return 'Sem permissão para acessar. Usuário pode estar bloqueado/suspendido.';
+
   if (data && JSON.stringify(data)) return JSON.stringify(data);
   return 'Erro da api desconhecido';
 }
@@ -86,10 +90,12 @@ async function requestPegabot(profile) {
   try {
     console.log('Fazendo request para ', profile);
     const result = await axios({ url: `${pegabotAPI}/botometer`, method: 'get', params: searchParams });
+    if (!result) throw new Error('Não houve resposta da api');
+    if (Array.isArray(result.data) && result.data.length === 0) throw new Error('Parece que usuário não tem tweets na timeline');
+
     return result.data;
   } catch (error) {
     const msg = handleRequestError(error);
-    console.log('Request error: ', msg);
     return { error, msg, searchParams };
   }
 }
