@@ -2,8 +2,13 @@ FROM node:14.4.0
 
 WORKDIR /home/node/app
 
-COPY . .
-RUN npm i 
+COPY package.json package-lock.json* ./
 
-RUN npm install pm2 -g
+RUN npm install && npm install pm2 -g && npm cache clean --force
+
+COPY . .
+
 CMD [ "pm2-runtime", "npm", "--", "start" ]
+
+
+
