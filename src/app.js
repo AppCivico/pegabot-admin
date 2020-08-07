@@ -120,35 +120,49 @@ async function getResults(content, filename) {
 
     for (let i = 0; i < csv.length; i++) { // eslint-disable-line
       const line = csv[i];
-      const screenName = line.perfil || line.perfis || line.screen_name || line.screenname || line.user || line.users;
 
-      //  if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-      if (screenName && !results[screenName]) {
-      // make request to the pegabotAPI
-        const reqAnswer = await help.requestPegabot(screenName); // eslint-disable-line no-await-in-loop
+      // get the user key from the CSV
+      const keyToUse = help.getCSVKey(line);
 
-        if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
-          results[screenName] = reqAnswer;
-          hasOneResult = true;
+      if (!keyToUse) { // if there's no valid key, save the error
+        const error = { line: i, msg: 'Atualize o nome da coluna para "Perfil"!' };
+        allErrors.push(error); // store all errors
+      } else {
+        const screenName = help.formatScreenname(line[keyToUse]); // get the screenname
 
-          const newRateLimit = reqAnswer.rate_limit;
-          if (newRateLimit && newRateLimit.remaining) {
-            rateLimit = newRateLimit;
-            const remaining = rateLimit.remaining ? parseInt(rateLimit.remaining, 10) : 10;
+        if (!screenName) { // if the screenname is not valid, save the error
+          const error = { line: i, msg: 'Nome de perfil inválido! Tenha certeza de que é apenas um texto!' };
+          allErrors.push(error); // store all errors
+        } else {
+          // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
+          if (!results[screenName]) { // eslint-disable-line no-lonely-if
+          // make request to the pegabotAPI
+            const reqAnswer = await help.requestPegabot(screenName); // eslint-disable-line no-await-in-loop
 
-            // check if we reached the rateLimitMaximum
-            if (remaining <= rateLimitMaximum) {
-              await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
-              // return this so that caller funciton stops execution and break current loop
-              waitTime = true;
-              break;
+            if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
+              results[screenName] = reqAnswer;
+              hasOneResult = true;
+
+              const newRateLimit = reqAnswer.rate_limit;
+              if (newRateLimit && newRateLimit.remaining) {
+                rateLimit = newRateLimit;
+                const remaining = rateLimit.remaining ? parseInt(rateLimit.remaining, 10) : 10;
+
+                // check if we reached the rateLimitMaximum
+                if (remaining <= rateLimitMaximum) {
+                  await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
+                  // return this so that caller funciton stops execution and break current loop
+                  waitTime = true;
+                  break;
+                }
+              }
+            } else {
+              const error = { line: i, msg: `Erro ao analisar handle "${screenName}"`, error: reqAnswer };
+              if (reqAnswer && reqAnswer.msg) error.msg += ` - ${reqAnswer.msg}`; // add erro detail on msg
+              allErrors.push(error); // store all errors
+              await redis.set(errorKey, JSON.stringify(allErrors)); // eslint-disable-line no-await-in-loop
             }
           }
-        } else {
-          const error = { line: i, msg: `Erro ao analisar handle "${screenName}"`, error: reqAnswer };
-          if (reqAnswer && reqAnswer.msg) error.msg += ` - ${reqAnswer.msg}`; // add erro detail on msg
-          allErrors.push(error); // store all errors
-          await redis.set(errorKey, JSON.stringify(allErrors)); // eslint-disable-line no-await-in-loop
         }
       }
     }
@@ -212,7 +226,5 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
-
-getOutputCSV();
 
 export default { procedure };

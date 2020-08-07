@@ -100,6 +100,34 @@ async function requestPegabot(profile) {
   }
 }
 
+/**
+* Get key with the user to be analysed from the input JSON
+* @param {object} csvJson - the current json from the input csv to array of jsons covertion
+* @return {string} The key we have to use to get the users to analyse
+* @example getCSVKey({ perfil: 'twitter' })
+*/
+function getCSVKey(csvJson) {
+  if (!csvJson || typeof csvJson !== 'object') return null;
+
+  let keyFound = null;
+  const acceptedKeys = ['perfil', 'perfis', 'profile', 'profiles', 'screenname', 'screennames', 'user', 'users'];
+  const keys = Object.keys(csvJson);
+
+  keys.forEach((e) => {
+    if (acceptedKeys.includes(e) && !keyFound) {
+      keyFound = e;
+    }
+  });
+
+  return keyFound;
+}
+
+function formatScreenname(screenname) {
+  if (typeof screenname === 'number') screenname = screenname.toString(); // eslint-disable-line no-param-reassign
+  if (!screenname || typeof screenname !== 'string') return '';
+  return screenname.trim();
+}
+
 export default {
-  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles, requestPegabot,
+  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles, requestPegabot, getCSVKey, formatScreenname,
 };
