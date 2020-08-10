@@ -71,8 +71,10 @@ async function getFileItem(fileName) {
   const client = await getDirectusClient();
 
   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+  if (!itemID || !parseInt(itemID, 10)) return {};
 
   const found = await client.getItem(userRequestsCollection, itemID);
+  if (!found || !found.data) return {};
   return found.data;
 }
 

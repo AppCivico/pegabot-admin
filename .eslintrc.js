@@ -6,6 +6,8 @@ module.exports = {
   },
   extends: [
     'airbnb-base',
+    'plugin:chai-friendly/recommended',
+    'plugin:chai-expect/recommended',
   ],
   globals: {
     Atomics: 'readonly',
@@ -16,6 +18,7 @@ module.exports = {
     sourceType: 'module',
   },
   rules: {
+
     'no-console': 'off',
     'import/named': 'off',
     'max-len': [
