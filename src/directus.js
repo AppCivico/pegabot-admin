@@ -134,8 +134,8 @@ async function saveFilesToDisk(files) {
       zip.extractAllTo(inPath); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
       const newFilePath = `${inPath}/${file.itemID}_${file.filename_download}`;
-      const res = await axios(file.data.full_url, { responseType: 'arraybuffer' }); // eslint-disable-line
-      fs.writeFileSync(newFilePath, res.body);
+      const res = await axios(file.data.full_url); // eslint-disable-line no-await-in-loop
+      fs.writeFileSync(newFilePath, res.data);
     }
   }
 }
@@ -225,6 +225,8 @@ async function populateIn() {
   console.log('files', files);
   if (files) await saveFilesToDisk(files);
 }
+
+populateIn();
 
 export default {
   populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError, getFileItem,
