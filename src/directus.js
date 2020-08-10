@@ -226,8 +226,6 @@ async function populateIn() {
   if (files) await saveFilesToDisk(files);
 }
 
-populateIn();
-
 export default {
   populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError, getFileItem,
 };
