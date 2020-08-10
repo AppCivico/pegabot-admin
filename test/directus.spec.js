@@ -66,11 +66,36 @@ describe('getFileItem', () => {
   });
 });
 
-// async function getFileItem(fileName) {
-//   const client = await getDirectusClient();
+describe('updateFileStatus', () => {
+  beforeEach(() => {
+    sinon.stub(DirectusSDK.prototype, 'login').callsFake();
+    sinon.stub(DirectusSDK.prototype, 'getItem').callsFake((collectionName, itemID) => mockItems.find((x) => x.data.id.toString() === itemID));
+  });
 
-//   const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
-//   if (!itemID || typeof itemID !== 'number') return {};
-//   const found = await client.getItem(userRequestsCollection, itemID);
-//   return found.data;
-// }
+  afterEach(() => {
+    DirectusSDK.prototype.login.restore();
+    DirectusSDK.prototype.getItem.restore();
+  });
+
+  it('Valid File ID found -> return file data', async () => {
+    const fileName = '1_myFile.csv';
+    const res = await directus.getFileItem(fileName);
+    expect(res).to.be.a('object');
+    expect(res.id).to.equal(1);
+  });
+
+  it('Invalid File ID found -> return empty object', async () => {
+    const fileName = '500_myFile.csv';
+    const res = await directus.getFileItem(fileName);
+    expect(res).to.be.a('object');
+    expect(res).to.be.empty;
+  });
+
+  it('File ID not found -> return empty object', async () => {
+    const fileName = 'myfile.csv';
+
+    const res = await directus.getFileItem(fileName);
+    expect(res).to.be.a('object');
+    expect(res).to.be.empty;
+  });
+});
