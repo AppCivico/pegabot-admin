@@ -227,5 +227,11 @@ async function populateIn() {
 }
 
 export default {
-  populateIn, getResults, saveFileToDirectus, updateFileStatus, saveError, getFileItem,
+  populateIn,
+  getResults,
+  saveFileToDirectus,
+  updateFileStatus,
+  saveError,
+  getFileItem,
+  getOneFile,
 };
