@@ -80,7 +80,6 @@ hangouts_private_key.json
 # Documents for consultation
 *.pdf
 *.ods
-*.csv
 
 # vscode configuration folder
 .vscode
