@@ -95,7 +95,7 @@ async function getFilesToProcess() {
   const toProcess = await client.getItems(userRequestsCollection, { filter: { status: { eq: 'waiting' } } });
 
   // no files to process were found
-  if (!toProcess || !toProcess.data || toProcess.data.length === 0) return null;
+  if (!toProcess || !toProcess.data || toProcess.data.length === 0) return [];
 
   const { data: allFiles } = await client.getFiles();
   const desiredFiles = [];
@@ -230,6 +230,7 @@ async function populateIn() {
 
 export default {
   populateIn,
+  getFilesToProcess,
   getResults,
   saveFileToDirectus,
   updateFileStatus,

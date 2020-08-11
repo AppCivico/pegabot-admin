@@ -35,7 +35,10 @@ describe('getOneFile', () => {
 describe('getFileItem', () => {
   beforeEach(() => {
     sinon.stub(DirectusSDK.prototype, 'login').callsFake();
-    sinon.stub(DirectusSDK.prototype, 'getItem').callsFake((collectionName, itemID) => mockItems.find((x) => x.data.id.toString() === itemID));
+    sinon.stub(DirectusSDK.prototype, 'getItem').callsFake((cName, itemID) => {
+      const data = mockItems.find((x) => x.id.toString() === itemID);
+      return { data };
+    });
   });
 
   afterEach(() => {
@@ -69,7 +72,10 @@ describe('getFileItem', () => {
 describe('updateFileStatus', () => {
   beforeEach(() => {
     sinon.stub(DirectusSDK.prototype, 'login').callsFake();
-    sinon.stub(DirectusSDK.prototype, 'getItem').callsFake((collectionName, itemID) => mockItems.find((x) => x.data.id.toString() === itemID));
+    sinon.stub(DirectusSDK.prototype, 'getItem').callsFake((cName, itemID) => {
+      const data = mockItems.find((x) => x.id.toString() === itemID);
+      return { data };
+    });
   });
 
   afterEach(() => {
@@ -97,5 +103,53 @@ describe('updateFileStatus', () => {
     const res = await directus.getFileItem(fileName);
     expect(res).to.be.a('object');
     expect(res).to.be.empty;
+  });
+});
+
+describe('getFilesToProcess', () => {
+  let itemsToUse = [];
+
+  beforeEach(() => {
+    sinon.stub(DirectusSDK.prototype, 'login').callsFake();
+    sinon.stub(DirectusSDK.prototype, 'getFiles').returns({ data: mockFiles });
+    sinon.stub(DirectusSDK.prototype, 'getItems').callsFake((cName, { filter }) => {
+      const status = filter.status.eq;
+      const data = itemsToUse.filter((x) => x.status === status);
+      return { data };
+    });
+  });
+
+  afterEach(() => {
+    DirectusSDK.prototype.login.restore();
+    DirectusSDK.prototype.getFiles.restore();
+    DirectusSDK.prototype.getItems.restore();
+  });
+
+  it('Get waiting items and add file data', async () => {
+    itemsToUse = mockItems;
+    const res = await directus.getFilesToProcess();
+
+    expect(res).to.be.a('array');
+    expect(res[0].id).to.equal(1);
+    expect(res[0].itemID).to.equal(1);
+    expect(res[1].id).to.equal(6);
+    expect(res[1].itemID).to.equal(6);
+  });
+
+  it('Get empty array if theres no item with waiting status', async () => {
+    itemsToUse[0].status = 'complete';
+    itemsToUse[5].status = 'complete';
+
+    const res = await directus.getFilesToProcess();
+    expect(res).to.be.a('array');
+    expect(res).to.empty;
+  });
+
+  it('Get empty array if theres no item with waiting status and a file', async () => {
+    itemsToUse[2].status = 'waiting';
+
+    const res = await directus.getFilesToProcess();
+    expect(res).to.be.a('array');
+    expect(res).to.empty;
   });
 });
