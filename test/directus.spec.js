@@ -7,6 +7,7 @@ import fs from 'fs';
 import DirectusSDK from '@directus/sdk-js';
 import axios from 'axios';
 import directus from '../src/directus';
+import mailer from '../src/mailer';
 import mockFiles from './mock/files';
 import mockItems from './mock/collectionItem';
 
@@ -203,5 +204,51 @@ describe('saveFilesToDisk', () => {
     await directus.saveFilesToDisk(fileToUse, pathSaveFiles);
     expect(axios.get.called).to.be.false;
     expect(pathSaveFiles).to.be.a.directory().and.empty;
+  });
+});
+
+describe('sendMail', () => {
+  const fileLink = '/myfile.zip';
+
+  beforeEach(() => {
+    sinon.stub(DirectusSDK.prototype, 'login').callsFake();
+    sinon.stub(DirectusSDK.prototype, 'createItem').callsFake(() => ({ data: 'foobar' }));
+    sinon.stub(mailer, 'sendEmail').callsFake((email) => (email.includes('2') ? { error: 'foobar' } : {}));
+  });
+
+  afterEach(() => {
+    DirectusSDK.prototype.login.restore();
+    DirectusSDK.prototype.createItem.restore();
+    mailer.sendEmail.restore();
+  });
+
+  it('Mail sent with formated text and log added', async () => {
+    const itemToUse = mockItems[0];
+
+    const expectedMail = itemToUse.email;
+    const expectedSubject = mailer.mailText.results.subject;
+    let expectedBody = mailer.mailText.results.body;
+    expectedBody = expectedBody.replace('<FILE_LINK>', process.env.DIRECTUS_HOST + fileLink);
+
+    const res = await directus.sendMail(itemToUse, fileLink);
+
+    expect(mailer.sendEmail.calledOnceWith(expectedMail, expectedSubject, expectedBody)).to.be.true;
+    expect(DirectusSDK.prototype.createItem.calledOnce).to.be.true;
+    expect(res).to.be.true;
+  });
+
+  it('Mail had an error but log is saved anyway', async () => {
+    const itemToUse = mockItems[1];
+
+    const expectedMail = itemToUse.email;
+    const expectedSubject = mailer.mailText.results.subject;
+    let expectedBody = mailer.mailText.results.body;
+    expectedBody = expectedBody.replace('<FILE_LINK>', process.env.DIRECTUS_HOST + fileLink);
+
+    const res = await directus.sendMail(itemToUse, fileLink);
+
+    expect(mailer.sendEmail.calledOnceWith(expectedMail, expectedSubject, expectedBody)).to.be.true;
+    expect(DirectusSDK.prototype.createItem.calledOnce).to.be.true;
+    expect(res).to.be.true;
   });
 });

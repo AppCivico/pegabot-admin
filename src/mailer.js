@@ -7,14 +7,16 @@ const port = process.env.MAIL_PORT;
 const service = process.env.MAIL_SERVICE;
 const from = process.env.MAIL_FROM;
 
-const transporter = nodemailer.createTransport({
-  service,
-  host,
-  port,
-  auth: { user, pass, secure: true },
-  tls: { rejectUnauthorized: false },
-  debug: true,
-});
+async function getTransporter() {
+  return nodemailer.createTransport({
+    service,
+    host,
+    port,
+    auth: { user, pass, secure: true },
+    tls: { rejectUnauthorized: false },
+    debug: true,
+  });
+}
 
 async function sendEmail(to, subject, html, attachments = []) {
   const options = {
@@ -22,6 +24,8 @@ async function sendEmail(to, subject, html, attachments = []) {
   };
 
   try {
+    const transporter = await getTransporter();
+
     const info = await transporter.sendMail(options);
     console.log(`'${subject}' para ${to}:`, info.messageId, `with ${options.attachments.length} attachments`);
     return true;

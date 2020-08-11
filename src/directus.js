@@ -238,4 +238,5 @@ export default {
   getFileItem,
   getOneFile,
   saveFilesToDisk,
+  sendMail,
 };
