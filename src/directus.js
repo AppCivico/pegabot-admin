@@ -94,7 +94,10 @@ async function getFilesToProcess() {
 }
 
 async function saveFilesToDisk(files, whereToSave = inPath) {
+  const client = await getDirectusClient();
+
   for (const file of files) { // eslint-disable-line
+    let foundValid = false;
 
     if (file.filename_download.endsWith('.zip')) { // handle zip files
       const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' });
@@ -102,7 +105,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       const zip = new AdmZip(res.data); // load zip buffer
       const zipEntries = zip.getEntries();
 
-      zipEntries.forEach((entry, i) => {
+      zipEntries.forEach((entry, i) => { // eslint-disable-line
         const { entryName } = entry;
 
         const isInvalidFile = help.checkInvalidFiles(entryName);
@@ -115,10 +118,18 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       });
 
       zip.extractAllTo(whereToSave); // extract files from zip
+      foundValid = true;
     } else if (file.filename_download.endsWith('.csv')) {
       const newFilePath = `${whereToSave}/${file.itemID}_${file.filename_download}`;
       const res = await axios.get(file.data.full_url);
       fs.writeFileSync(newFilePath, res.data);
+      foundValid = true;
+    }
+
+    if (foundValid === false) {
+      const error = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
+      const invalidFile = await client.updateItem(userRequestsCollection, file.itemID, { status: 'error', error });
+      if (invalidFile) console.log('invalidFile', invalidFile);
     }
   }
 }

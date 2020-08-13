@@ -166,11 +166,21 @@ describe('saveFilesToDisk', () => {
   const pathSaveFiles = `${process.env.NODE_PATH}/test/mock/whereToSave`;
 
   beforeEach(() => {
+    sinon.stub(DirectusSDK.prototype, 'login').callsFake();
     sinon.stub(axios, 'get').callsFake((fileName) => ({ data: fs.readFileSync(`${pathLoadFiles}/${fileName}`) }));
+    sinon.stub(DirectusSDK.prototype, 'updateItem').callsFake((cName, itemID, params) => {
+      expect(params).to.be.a('object');
+      expect(params.status).to.equal('error');
+      expect(params.error).to.be.a('string');
+    });
+
+    return null;
   });
 
   afterEach(() => {
     axios.get.restore();
+    DirectusSDK.prototype.updateItem.restore();
+    DirectusSDK.prototype.login.restore();
   });
 
   it('Save CSV on folder, add ID to filename, have proper content', async () => {
@@ -198,12 +208,14 @@ describe('saveFilesToDisk', () => {
     expect(pathSaveFiles).to.be.a.directory().and.empty; // should only have the one file we just deleted
   });
 
-  it('Ignore files that arent csv or zip', async () => {
+  it('Save item error for files that arent csv or zip', async () => {
     const fileToUse = [mockFiles[1], mockFiles[2]];
 
     await directus.saveFilesToDisk(fileToUse, pathSaveFiles);
     expect(axios.get.called).to.be.false;
     expect(pathSaveFiles).to.be.a.directory().and.empty;
+    expect(axios.get.called).to.be.false;
+    expect(DirectusSDK.prototype.updateItem.callCount).to.equal(fileToUse.length);
   });
 });
 
@@ -277,8 +289,8 @@ describe('saveFileToDirectus', () => {
       expect(itemData).to.be.a('object');
       expect(itemData.status).to.equal('complete');
       expect(itemData.output_file).to.equal(expectedItemID);
-      expect(typeof itemData.analysis_date).to.equal('string');
-      expect(typeof itemData.error).to.equal('string');
+      expect(itemData.analysis_date).to.be.a('string');
+      expect(itemData.error).to.be.a('string');
       expect(itemData.error.trim()).to.equal('Linha: 3 - Usuário não existe');
 
       return { data: { id: expectedItemID } };
