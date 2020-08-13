@@ -138,5 +138,12 @@ function formatScreenname(screenname) {
 }
 
 export default {
-  dateMysqlFormat, checkValue, isValidDate, formatErrorMsg, checkInvalidFiles, requestPegabot, getCSVKey, formatScreenname,
+  dateMysqlFormat,
+  checkValue,
+  isValidDate,
+  formatErrorMsg,
+  checkInvalidFiles,
+  requestPegabot,
+  getCSVKey,
+  formatScreenname,
 };

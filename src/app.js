@@ -125,8 +125,9 @@ async function getResults(content, filename) {
       const keyToUse = help.getCSVKey(line);
 
       if (!keyToUse) { // if there's no valid key, save the error
-        const error = { line: i, msg: 'Atualize o nome da coluna para "Perfil"!' };
+        const error = { line: i, msg: 'Adicione uma coluna para servir de header da lista de usuários chamada "Perfil"' };
         allErrors.push(error); // store all errors
+        break;
       } else {
         const screenName = help.formatScreenname(line[keyToUse]); // get the screenname
 
@@ -227,7 +228,5 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
-
-procedure();
 
 export default { procedure };
