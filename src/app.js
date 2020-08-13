@@ -210,7 +210,8 @@ async function getOutputCSV() {
 
         if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result); // eslint-disable-line no-await-in-loop
-          await directus.saveFileToDirectus(filepath, result.errors); // eslint-disable-line no-await-in-loop
+          const updatedItem = await saveFileToDirectus(filepath, result.errors); // eslint-disable-line
+          if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName); // eslint-disable-line
         } else {
           await directus.saveError(result.filename, result.errors); // eslint-disable-line no-await-in-loop
         }

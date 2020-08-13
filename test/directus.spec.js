@@ -252,3 +252,53 @@ describe('sendMail', () => {
     expect(res).to.be.true;
   });
 });
+
+describe('saveFileToDirectus', () => {
+  let fileName = '';
+  let itemID = '';
+  let errors = [];
+  const pathLoadFiles = `${process.env.NODE_PATH}/test/mock/whereToLoad`;
+
+  beforeEach(() => {
+    sinon.stub(DirectusSDK.prototype, 'login').callsFake();
+    sinon.stub(DirectusSDK.prototype, 'uploadFiles').callsFake((fileData) => {
+      const expectedName = fileName.replace('csv', 'zip');
+      expect(fileData).to.be.a('object');
+      expect(fileData.title).to.equal(expectedName);
+      expect(fileData.filename_disk).to.equal(expectedName);
+      expect(fileData.filename_download).to.equal(expectedName);
+      expect(fileData.data).to.not.be.empty;
+
+      return { data: { id: itemID } };
+    });
+    sinon.stub(DirectusSDK.prototype, 'updateItem').callsFake((cName, expectedItemID, itemData) => {
+      expect(cName).to.not.be.empty;
+      expect(expectedItemID).to.equal(itemID);
+      expect(itemData).to.be.a('object');
+      expect(itemData.status).to.equal('complete');
+      expect(itemData.output_file).to.equal(expectedItemID);
+      expect(typeof itemData.analysis_date).to.equal('string');
+      expect(typeof itemData.error).to.equal('string');
+      expect(itemData.error.trim()).to.equal('Linha: 3 - Usuário não existe');
+
+      return { data: { id: expectedItemID } };
+    });
+  });
+
+  afterEach(() => {
+    DirectusSDK.prototype.login.restore();
+    DirectusSDK.prototype.updateItem.restore();
+    errors = [];
+  });
+
+  it('Save errors, turn csv to zip and return uploaded item from directus', async () => {
+    fileName = '1_result.csv';
+    itemID = fileName.substr(0, fileName.indexOf('_'));
+    const newError = { line: 1, msg: 'Usuário não existe' };
+    errors.push(newError);
+
+    const res = await directus.saveFileToDirectus(fileName, errors, pathLoadFiles);
+    expect(res).to.be.a('object');
+    expect(res.data.id).to.equal(itemID);
+  });
+});

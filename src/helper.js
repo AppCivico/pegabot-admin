@@ -33,20 +33,29 @@ function isValidDate(d) {
 }
 
 function formatErrorMsg(errors) {
-  let text = '';
+  try {
+    if (errors && Array.isArray(errors)) {
+      let text = '';
 
-  errors.forEach((e) => {
-    let aux = '';
-    if (typeof e.line === 'number' && e.msg) {
-      aux = `Linha: ${e.line + 2} - ${e.msg}\n\n`;
-    } else {
-      aux = e;
+      errors.forEach((e) => {
+        let aux = '';
+        if (typeof e.line === 'number' && e.msg) {
+          aux = `Linha: ${e.line + 2} - ${e.msg}\n\n`;
+        } else {
+          aux = e;
+        }
+
+        text += aux;
+      });
+
+      return text;
     }
 
-    text += aux;
-  });
-
-  return text;
+    return null;
+  } catch (error) {
+    console.log('formatErrorMsg', error);
+    return null;
+  }
 }
 
 function checkInvalidFiles(fileName) {

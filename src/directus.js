@@ -178,25 +178,8 @@ async function sendMail(item, filelink) {
   return attributes.status !== 'error';
 }
 
-async function saveFileToDirectus(fileName, errors = {}) {
-  const client = await getDirectusClient();
-  const localfile = `${outPath}/${fileName}`;
-  const zip = new AdmZip(); // create archive
-  await zip.addLocalFile(localfile); // add local file
-  const willSendthis = zip.toBuffer(); // get everything as a buffer
-  const newFileName = fileName.replace('csv', 'zip');
-  const error = help.formatErrorMsg(errors);
-
-  const fileData = await client.uploadFiles({
-    title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
-  });
-
-  const fileID = fileData.data.id; // get the file id
-  const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
-  const analysisDate = help.dateMysqlFormat(new Date());
-  const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
-    status: 'complete', output_file: fileID, analysis_date: analysisDate, error,
-  });
+async function sendResultMail(updatedItem, fileName, whereToLoad = outPath) {
+  const localfile = `${whereToLoad}/${fileName}`;
 
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
@@ -213,12 +196,38 @@ async function saveFileToDirectus(fileName, errors = {}) {
   }
 }
 
+async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) {
+  const client = await getDirectusClient();
+  const localfile = `${whereToLoad}/${fileName}`;
+  const zip = new AdmZip(); // create archive
+  await zip.addLocalFile(localfile); // add local file
+  const willSendthis = zip.toBuffer(); // get everything as a buffer
+  const newFileName = fileName.replace('csv', 'zip');
+
+  const error = help.formatErrorMsg(errors);
+
+  const fileData = await client.uploadFiles({
+    title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
+  });
+
+  const fileID = fileData.data.id; // get the file id
+  const itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+  const analysisDate = help.dateMysqlFormat(new Date());
+  const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
+    status: 'complete', output_file: fileID, analysis_date: analysisDate, error,
+  });
+
+  if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
+  return updatedItem;
+}
+
 // save each file inside of the /out directory on direct
 async function getResults() {
   const fileNames = await fs.readdirSync(outPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const fileName = fileNames[i];
-    await saveFileToDirectus(fileName); // eslint-disable-line
+    const updatedItem = await saveFileToDirectus(fileName); // eslint-disable-line
+    if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName); // eslint-disable-line
   }
 }
 
@@ -233,6 +242,7 @@ export default {
   getFilesToProcess,
   getResults,
   saveFileToDirectus,
+  sendResultMail,
   updateFileStatus,
   saveError,
   getFileItem,
