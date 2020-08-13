@@ -1,36 +1,17 @@
 import fs from 'fs';
 import axios from 'axios';
-import DirectusSDK from '@directus/sdk-js';
 import AdmZip from 'adm-zip';
 import mailer from './mailer';
 import redis from './redis';
 import help from './helper';
+import getDirectusClient from './DirectusSDK';
 
 const userRequestsCollection = 'user_requests';
 const emailLogCollection = 'email_log';
 
-const directusUrl = process.env.DIRECTUS_URL;
-const directusProject = process.env.DIRECTUS_PROJECT;
-const directusEmail = process.env.DIRECTUS_USER_EMAIL;
-const directusPass = process.env.DIRECTUS_USER_PASSWORD;
-
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
 const outPath = `${process.env.NODE_PATH}/out`;
-
-async function getDirectusClient() {
-  const client = new DirectusSDK({
-    url: directusUrl,
-    project: directusProject,
-  });
-
-  await client.login({
-    email: directusEmail,
-    password: directusPass,
-  });
-
-  return client;
-}
 
 async function getOneFile(fileID) {
   const client = await getDirectusClient();
@@ -116,7 +97,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
   for (const file of files) { // eslint-disable-line
 
     if (file.filename_download.endsWith('.zip')) { // handle zip files
-      const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' }); // eslint-disable-line
+      const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' });
 
       const zip = new AdmZip(res.data); // load zip buffer
       const zipEntries = zip.getEntries();
@@ -136,7 +117,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       zip.extractAllTo(whereToSave); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
       const newFilePath = `${whereToSave}/${file.itemID}_${file.filename_download}`;
-      const res = await axios.get(file.data.full_url); // eslint-disable-line no-await-in-loop
+      const res = await axios.get(file.data.full_url);
       fs.writeFileSync(newFilePath, res.data);
     }
   }
@@ -226,8 +207,8 @@ async function getResults() {
   const fileNames = await fs.readdirSync(outPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const fileName = fileNames[i];
-    const updatedItem = await saveFileToDirectus(fileName); // eslint-disable-line
-    if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName); // eslint-disable-line
+    const updatedItem = await saveFileToDirectus(fileName);
+    if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName);
   }
 }
 
@@ -249,4 +230,5 @@ export default {
   getOneFile,
   saveFilesToDisk,
   sendMail,
+  getDirectusClient,
 };

@@ -18,7 +18,7 @@ module.exports = {
     sourceType: 'module',
   },
   rules: {
-
+    'no-await-in-loop': 'off',
     'no-console': 'off',
     'import/named': 'off',
     'max-len': [

@@ -18,7 +18,7 @@ async function sendInToTmp() {
     const filename = fileNames[i];
     const oldPath = `${inPath}/${filename}`;
 
-    const stat = await fs.lstatSync(oldPath); // eslint-disable-line
+    const stat = await fs.lstatSync(oldPath);
     const isDirectory = stat.isDirectory();
 
     if (isDirectory) {
@@ -137,7 +137,7 @@ async function getResults(content, filename) {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
           if (!results[screenName]) { // eslint-disable-line no-lonely-if
           // make request to the pegabotAPI
-            const reqAnswer = await help.requestPegabot(screenName); // eslint-disable-line no-await-in-loop
+            const reqAnswer = await help.requestPegabot(screenName);
 
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
               results[screenName] = reqAnswer;
@@ -150,7 +150,7 @@ async function getResults(content, filename) {
 
                 // check if we reached the rateLimitMaximum
                 if (remaining <= rateLimitMaximum) {
-                  await saveResultsForLater(resultKey, results, rateLimit.toReset); // eslint-disable-line no-await-in-loop
+                  await saveResultsForLater(resultKey, results, rateLimit.toReset);
                   // return this so that caller funciton stops execution and break current loop
                   waitTime = true;
                   break;
@@ -160,7 +160,7 @@ async function getResults(content, filename) {
               const error = { line: i, msg: `Erro ao analisar handle "${screenName}"`, error: reqAnswer };
               if (reqAnswer && reqAnswer.msg) error.msg += ` - ${reqAnswer.msg}`; // add erro detail on msg
               allErrors.push(error); // store all errors
-              await redis.set(errorKey, JSON.stringify(allErrors)); // eslint-disable-line no-await-in-loop
+              await redis.set(errorKey, JSON.stringify(allErrors));
             }
           }
         }
@@ -197,23 +197,23 @@ async function getOutputCSV() {
       if (!analysedNow) {
         itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
-        const content = await fs.readFileSync(newPath, 'utf-8'); // eslint-disable-line no-await-in-loop
+        const content = await fs.readFileSync(newPath, 'utf-8');
 
-        const { status: fileStatus } = await directus.getFileItem(filename); // eslint-disable-line no-await-in-loop
+        const { status: fileStatus } = await directus.getFileItem(filename);
         // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
-        if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');// eslint-disable-line no-await-in-loop
-        const result = await getResults(content, filename); // eslint-disable-line no-await-in-loop
+        if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
+        const result = await getResults(content, filename);
         itemStatuses[filename] = false;
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
 
         if (result && result.data && result.hasOneResult) {
-          const filepath = await saveResult(result); // eslint-disable-line no-await-in-loop
-          const updatedItem = await saveFileToDirectus(filepath, result.errors); // eslint-disable-line
-          if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName); // eslint-disable-line
+          const filepath = await saveResult(result);
+          const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
+          if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
-          await directus.saveError(result.filename, result.errors); // eslint-disable-line no-await-in-loop
+          await directus.saveError(result.filename, result.errors);
         }
       }
     }
@@ -227,5 +227,7 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
+
+procedure();
 
 export default { procedure };
