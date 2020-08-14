@@ -98,8 +98,12 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
 
   for (const file of files) { // eslint-disable-line
     let foundValid = false;
+    let validOnZip = null;
 
     if (file.filename_download.endsWith('.zip')) { // handle zip files
+      foundValid = true;
+      validOnZip = false;
+
       const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' });
 
       const zip = new AdmZip(res.data); // load zip buffer
@@ -114,11 +118,11 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
         } else {
           // rename files inside of zip to prefix the item id
           entry.entryName = `${file.itemID}_${entryName}`; // eslint-disable-line no-param-reassign
+          validOnZip = true;
         }
       });
 
-      zip.extractAllTo(whereToSave); // extract files from zip
-      foundValid = true;
+      if (validOnZip) zip.extractAllTo(whereToSave); // extract files from zip
     } else if (file.filename_download.endsWith('.csv')) {
       const newFilePath = `${whereToSave}/${file.itemID}_${file.filename_download}`;
       const res = await axios.get(file.data.full_url);
@@ -126,8 +130,14 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       foundValid = true;
     }
 
-    if (foundValid === false) {
-      const error = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
+    let error = '';
+    if (foundValid === false && validOnZip === null) { // no valid csv nor zip
+      error = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
+    } else if (foundValid === true && validOnZip === false) { // no valid file found on the zip file
+      error = 'Não foi encontrado nenhum arquivo .csv dentro do .zip adicionado.';
+    }
+
+    if (error) {
       const invalidFile = await client.updateItem(userRequestsCollection, file.itemID, { status: 'error', error });
       if (invalidFile) console.log('invalidFile', invalidFile);
     }

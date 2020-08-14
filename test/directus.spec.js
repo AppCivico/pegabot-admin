@@ -164,6 +164,7 @@ describe('getFilesToProcess', () => {
 describe('saveFilesToDisk', () => {
   const pathLoadFiles = `${process.env.NODE_PATH}/test/mock/filesToDownload`;
   const pathSaveFiles = `${process.env.NODE_PATH}/test/mock/whereToSave`;
+  let expectedError = '';
 
   beforeEach(() => {
     sinon.stub(DirectusSDK.prototype, 'login').callsFake();
@@ -172,15 +173,17 @@ describe('saveFilesToDisk', () => {
       expect(params).to.be.a('object');
       expect(params.status).to.equal('error');
       expect(params.error).to.be.a('string');
-    });
+      expect(params.error).to.equal(expectedError);
 
-    return null;
+      return null;
+    });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     axios.get.restore();
     DirectusSDK.prototype.updateItem.restore();
     DirectusSDK.prototype.login.restore();
+    expectedError = '';
   });
 
   it('Save CSV on folder, add ID to filename, have proper content', async () => {
@@ -210,11 +213,21 @@ describe('saveFilesToDisk', () => {
 
   it('Save item error for files that arent csv or zip', async () => {
     const fileToUse = [mockFiles[1], mockFiles[2]];
+    expectedError = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
 
     await directus.saveFilesToDisk(fileToUse, pathSaveFiles);
     expect(axios.get.called).to.be.false;
     expect(pathSaveFiles).to.be.a.directory().and.empty;
-    expect(axios.get.called).to.be.false;
+    expect(DirectusSDK.prototype.updateItem.callCount).to.equal(fileToUse.length);
+  });
+
+  it('Save item error for zip that doesnt contain valid file', async () => {
+    const fileToUse = [mockFiles[3]];
+    expectedError = 'Não foi encontrado nenhum arquivo .csv dentro do .zip adicionado.';
+
+    await directus.saveFilesToDisk(fileToUse, pathSaveFiles);
+    expect(axios.get.called).to.be.true;
+    expect(pathSaveFiles).to.be.a.directory().and.empty;
     expect(DirectusSDK.prototype.updateItem.callCount).to.equal(fileToUse.length);
   });
 });
