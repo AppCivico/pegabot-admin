@@ -230,6 +230,19 @@ describe('saveFilesToDisk', () => {
     expect(pathSaveFiles).to.be.a.directory().and.empty;
     expect(DirectusSDK.prototype.updateItem.callCount).to.equal(fileToUse.length);
   });
+
+  it('Zip has two CSVs, save only the first one alphabetically', async () => {
+    const fileToUse = mockFiles[5];
+    await directus.saveFilesToDisk([fileToUse], pathSaveFiles);
+
+    const expectedFilename = `${fileToUse.itemID}_teste1.csv`; // teste1.csv is the  first file inside of the zip
+
+    expect(axios.get.called).to.be.true;
+    expect(`${pathSaveFiles}/${expectedFilename}`).to.be.a.file().with.contents.that.match(/perfil/);
+    expect(`${pathSaveFiles}/${expectedFilename}`).to.be.a.file().with.contents.that.match(/twitter/);
+    await fs.unlinkSync(`${pathSaveFiles}/${expectedFilename}`);
+    expect(pathSaveFiles).to.be.a.directory().and.empty; // should only have the one file we just deleted
+  });
 });
 
 describe('sendMail', () => {

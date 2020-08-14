@@ -71,6 +71,18 @@ const items = [
     output_file: null,
     analysis_date: null,
   },
+  {
+    id: 7,
+    status: 'complete',
+    owner: 1,
+    created_on: '2020-07-19T22:15:17+00:00',
+    modified_on: '2020-07-30T17:46:35+00:00',
+    error: '',
+    email: 'foobar@test.com',
+    input_file: 7,
+    output_file: null,
+    analysis_date: null,
+  },
 ];
 
 export default items;

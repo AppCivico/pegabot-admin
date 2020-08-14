@@ -113,7 +113,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
         const { entryName } = entry;
 
         const isInvalidFile = help.checkInvalidFiles(entryName);
-        if (isInvalidFile) {
+        if (isInvalidFile || validOnZip) {
           delete zipEntries[i]; // remove unwanted files
         } else {
           // rename files inside of zip to prefix the item id
