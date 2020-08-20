@@ -198,6 +198,28 @@ describe('saveFilesToDisk', () => {
     await fs.unlinkSync(`${pathSaveFiles}/${expectedFilename}`);
   });
 
+  it('Save XLS on folder, add ID to filename, have proper content', async () => {
+    const fileToUse = mockFiles[6];
+
+    await directus.saveFilesToDisk([fileToUse], pathSaveFiles);
+    const expectedFilename = `${fileToUse.itemID}_${fileToUse.filename_download}`;
+
+    expect(axios.get.calledOnce).to.be.true;
+    expect(`${pathSaveFiles}/${expectedFilename}`).to.be.a.file();
+    await fs.unlinkSync(`${pathSaveFiles}/${expectedFilename}`);
+  });
+
+  it('Save XLSX on folder, add ID to filename, have proper content', async () => {
+    const fileToUse = mockFiles[7];
+
+    await directus.saveFilesToDisk([fileToUse], pathSaveFiles);
+    const expectedFilename = `${fileToUse.itemID}_${fileToUse.filename_download}`;
+
+    expect(axios.get.calledOnce).to.be.true;
+    expect(`${pathSaveFiles}/${expectedFilename}`).to.be.a.file();
+    await fs.unlinkSync(`${pathSaveFiles}/${expectedFilename}`);
+  });
+
   it('Zip file, add ID to filename, ignore invalid files', async () => {
     const fileToUse = mockFiles[4];
 
@@ -213,7 +235,7 @@ describe('saveFilesToDisk', () => {
 
   it('Save item error for files that arent csv or zip', async () => {
     const fileToUse = [mockFiles[1], mockFiles[2]];
-    expectedError = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
+    expectedError = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv, .xls, .xlsx ou um .zip com um desses dentro.';
 
     await directus.saveFilesToDisk(fileToUse, pathSaveFiles);
     expect(axios.get.called).to.be.false;

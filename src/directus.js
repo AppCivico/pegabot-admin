@@ -100,7 +100,9 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
     let foundValid = false;
     let validOnZip = null;
 
-    if (file.filename_download.endsWith('.zip')) { // handle zip files
+    const fileName = file.filename_download;
+
+    if (fileName.endsWith('.zip')) { // handle zip files
       foundValid = true;
       validOnZip = false;
 
@@ -123,16 +125,16 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       });
 
       if (validOnZip) zip.extractAllTo(whereToSave); // extract files from zip
-    } else if (file.filename_download.endsWith('.csv')) {
+    } else if (fileName.endsWith('.csv') || fileName.endsWith('xls') || fileName.endsWith('xlsx')) {
       const newFilePath = `${whereToSave}/${file.itemID}_${file.filename_download}`;
-      const res = await axios.get(file.data.full_url);
+      const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' });
       fs.writeFileSync(newFilePath, res.data);
       foundValid = true;
     }
 
     let error = '';
     if (foundValid === false && validOnZip === null) { // no valid csv nor zip
-      error = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv ou um .zip com um .csv dentro.';
+      error = 'A extensão do arquivo adicionado não é válida, adicione apenas .csv, .xls, .xlsx ou um .zip com um desses dentro.';
     } else if (foundValid === true && validOnZip === false) { // no valid file found on the zip file
       error = 'Não foi encontrado nenhum arquivo .csv dentro do .zip adicionado.';
     }

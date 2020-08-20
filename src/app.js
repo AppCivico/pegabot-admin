@@ -224,6 +224,4 @@ async function procedure() {
   await directus.getResults();
 }
 
-getOutputCSV();
-
 export default { procedure };
