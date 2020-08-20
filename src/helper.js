@@ -1,4 +1,7 @@
 import axios from 'axios';
+import fs from 'fs';
+import neatCsv from 'neat-csv';
+import excelToJson from 'convert-excel-to-json';
 
 /**
  * You first need to create a formatting function to pad numbers to two digits…
@@ -62,9 +65,16 @@ function checkInvalidFiles(fileName) {
   if (!fileName || typeof fileName !== 'string') return true;
   const invalidStrings = ['__MACOSX', '._'];
   const hasInvalidStrings = invalidStrings.some((v) => fileName.includes(v));
-  const endsWithCSV = fileName.endsWith('.csv');
+  if (hasInvalidStrings) return true;
 
-  return hasInvalidStrings || !endsWithCSV;
+  const supportedExtensions = ['csv', 'xls', 'xlsx'];
+  let validExt = false;
+
+  supportedExtensions.forEach((e) => {
+    if (!validExt) validExt = fileName.endsWith(`.${e}`);
+  });
+
+  return !validExt;
 }
 
 function handleRequestError(error) {
@@ -118,8 +128,8 @@ async function requestPegabot(profile) {
 function getCSVKey(csvJson) {
   if (!csvJson || typeof csvJson !== 'object') return null;
 
+  const acceptedKeys = ['perfil', 'perfis', 'profile', 'profiles', 'screenname', 'screennames', 'user', 'users', 'screen_name', 'screen_names'];
   let keyFound = null;
-  const acceptedKeys = ['perfil', 'perfis', 'profile', 'profiles', 'screenname', 'screennames', 'user', 'users'];
   const keys = Object.keys(csvJson);
 
   keys.forEach((e) => {
@@ -137,6 +147,40 @@ function formatScreenname(screenname) {
   return screenname.trim();
 }
 
+async function getFileContent(filePath) {
+  if (filePath.endsWith('.csv')) {
+    const content = await fs.readFileSync(filePath, 'utf-8');
+    return neatCsv(content, { mapHeaders: ({ header }) => header.toLowerCase() });
+  }
+
+  if (filePath.endsWith('.xlsx') || filePath.endsWith('.xls')) {
+    const excel = await excelToJson({
+      sourceFile: filePath,
+      header: { rows: 1 },
+      columnToKey: { A: '{{A1}}' },
+    });
+    const result = [];
+    let columnToUse = null;
+    const sheets = Object.keys(excel);
+
+    // get data from exery sheet
+    sheets.forEach((sheet) => {
+      const rows = excel[sheet];
+      rows.forEach((row) => {
+        // use first column as the main column
+        const currentKey = Object.keys(row)[0];
+        if (!columnToUse && currentKey) columnToUse = currentKey;
+        const aux = { perfil: row[columnToUse] };
+        result.push(aux);
+      });
+    });
+
+    return result;
+  }
+
+  return null;
+}
+
 export default {
   dateMysqlFormat,
   checkValue,
@@ -146,4 +190,5 @@ export default {
   requestPegabot,
   getCSVKey,
   formatScreenname,
+  getFileContent,
 };

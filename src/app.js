@@ -1,4 +1,3 @@
-import neatCsv from 'neat-csv';
 import { parseAsync } from 'json2csv';
 import fs from 'fs';
 import redis from './redis';
@@ -99,7 +98,7 @@ async function saveResultsForLater(resultKey, results, waitTime) {
   await redis.set(nextExecutionKey, setNextExecution);
 }
 
-async function getResults(content, filename) {
+async function getResults(profiles, filename) {
   let results = {};
   let hasOneResult = false;
   let rateLimit = {};
@@ -109,17 +108,13 @@ async function getResults(content, filename) {
   const allErrors = [];
 
   try {
-    const csv = await neatCsv(content, {
-      mapHeaders: ({ header }) => header.toLowerCase(),
-    });
-
     // check if we already analysed a part of this file
     const oldResult = await redis.get(resultKey);
     // save string result as json (if it exists)
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
-    for (let i = 0; i < csv.length; i++) { // eslint-disable-line
-      const line = csv[i];
+    for (let i = 0; i < profiles.length; i++) { // eslint-disable-line
+      const line = profiles[i];
 
       // get the user key from the CSV
       const keyToUse = help.getCSVKey(line);
@@ -198,7 +193,7 @@ async function getOutputCSV() {
       if (!analysedNow) {
         itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
-        const content = await fs.readFileSync(newPath, 'utf-8');
+        const content = await help.getFileContent(newPath);
 
         const { status: fileStatus } = await directus.getFileItem(filename);
         // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
@@ -228,5 +223,7 @@ async function procedure() {
   await getOutputCSV();
   await directus.getResults();
 }
+
+getOutputCSV();
 
 export default { procedure };
