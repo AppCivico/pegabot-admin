@@ -41,36 +41,44 @@ function convertResultsToCSV(data) {
   const csv = [];
   const keys = Object.keys(data);
   keys.forEach((screenname) => {
-    const results = data[screenname].profiles[0];
-    const twitterData = data[screenname].twitter_data;
     const aux = {};
 
-    aux['Perfil Twitter'] = screenname;
-    aux['Análise Total'] = results.bot_probability.all;
+    if (data[screenname] && data[screenname].profiles && data[screenname].profiles[0]) {
+      const results = data[screenname].profiles[0];
+      const twitterData = data[screenname].twitter_data;
 
-    const langInd = results.language_independent;
-    aux['Análise Usuário'] = help.checkValue(langInd.user);
-    aux['Análise Amigos'] = help.checkValue(langInd.friend);
-    aux['Análise Temporal'] = help.checkValue(langInd.temporal);
-    aux['Análise Rede'] = help.checkValue(langInd.network);
+      aux['Perfil Twitter'] = screenname;
+      aux['Mensagem de Erro'] = '';
+      aux['Análise Total'] = results.bot_probability.all;
 
-    const langDep = results.language_dependent;
-    if (langDep && langDep.sentiment) aux['Análise Sentimento'] = help.checkValue(langDep.sentiment.value);
+      const langInd = results.language_independent;
+      aux['Análise Usuário'] = help.checkValue(langInd.user);
+      aux['Análise Amigos'] = help.checkValue(langInd.friend);
+      aux['Análise Temporal'] = help.checkValue(langInd.temporal);
+      aux['Análise Rede'] = help.checkValue(langInd.network);
 
-    aux['URL do Perfil'] = results.url;
-    aux['Avatar do Perfil'] = results.avatar;
+      const langDep = results.language_dependent;
+      if (langDep && langDep.sentiment) aux['Análise Sentimento'] = help.checkValue(langDep.sentiment.value);
 
-    aux['ID do Usuário'] = `"${twitterData.user_id}"`;
-    aux['Nome do Usuário'] = twitterData.user_name;
-    aux['Criação da Conta'] = help.dateMysqlFormat(new Date(twitterData.created_at));
-    aux.Seguindo = twitterData.following;
-    aux.Seguidores = twitterData.followers;
-    aux['Número de Tweets'] = twitterData.number_tweets;
-    aux['Hashtags Recentes'] = twitterData.hashtags;
-    aux['Menções Recentes'] = twitterData.mentions;
-    aux['Usou Cache'] = twitterData.usedCache ? 'Sim' : 'Não';
+      aux['URL do Perfil'] = results.url;
+      aux['Avatar do Perfil'] = results.avatar;
 
-    csv.push(aux);
+      aux['ID do Usuário'] = `"${twitterData.user_id}"`;
+      aux['Nome do Usuário'] = twitterData.user_name;
+      aux['Criação da Conta'] = help.dateMysqlFormat(new Date(twitterData.created_at));
+      aux.Seguindo = twitterData.following;
+      aux.Seguidores = twitterData.followers;
+      aux['Número de Tweets'] = twitterData.number_tweets;
+      aux['Hashtags Recentes'] = twitterData.hashtags;
+      aux['Menções Recentes'] = twitterData.mentions;
+      aux['Usou Cache'] = twitterData.usedCache ? 'Sim' : 'Não';
+      csv.push(aux);
+    } else if (data[screenname].msg) {
+      aux['Perfil Twitter'] = data[screenname].searchParams.profile;
+      const { msg } = data[screenname];
+      if (msg) aux['Mensagem de Erro'] = msg.replace('Error:', '').trim();
+      csv.push(aux);
+    }
   });
 
   return csv;
@@ -80,10 +88,12 @@ async function saveResult(result) {
   const { data, filename } = result;
   const content = convertResultsToCSV(data);
 
-  const newFilename = filename.replace('.', '_results.');
+  let newFilename = filename.substr(0, filename.indexOf('.'));
+  newFilename += '_results.csv';
   const filepath = `${outPath}/${newFilename}`;
   await fs.writeFileSync(filepath, await parseAsync(content), 'utf8');
   await fs.unlinkSync(`${tmpPath}/${filename}`);
+
   return newFilename;
 }
 
@@ -135,8 +145,8 @@ async function getResults(profiles, filename) {
           // make request to the pegabotAPI
             const reqAnswer = await help.requestPegabot(screenName);
 
+            results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
-              results[screenName] = reqAnswer;
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
