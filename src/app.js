@@ -1,5 +1,5 @@
-import { parseAsync } from 'json2csv';
 import fs from 'fs';
+import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -37,7 +37,7 @@ async function sendInToTmp() {
   }
 }
 
-function convertResultsToCSV(data) {
+function formatResults(data) {
   const csv = [];
   const keys = Object.keys(data);
   keys.forEach((screenname) => {
@@ -86,13 +86,15 @@ function convertResultsToCSV(data) {
 
 async function saveResult(result) {
   const { data, filename } = result;
-  const content = convertResultsToCSV(data);
+  const content = formatResults(data);
+
+  const xlsxData = json2xls(content);
 
   let newFilename = filename.substr(0, filename.indexOf('.'));
-  newFilename += '_results.csv';
+  newFilename += '_results.xlsx';
   const filepath = `${outPath}/${newFilename}`;
-  await fs.writeFileSync(filepath, await parseAsync(content), 'utf8');
-  await fs.unlinkSync(`${tmpPath}/${filename}`);
+
+  await fs.writeFileSync(filepath, xlsxData, 'binary');
 
   return newFilename;
 }

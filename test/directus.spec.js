@@ -331,7 +331,7 @@ describe('saveFileToDirectus', () => {
   beforeEach(() => {
     sinon.stub(DirectusSDK.prototype, 'login').callsFake();
     sinon.stub(DirectusSDK.prototype, 'uploadFiles').callsFake((fileData) => {
-      const expectedName = fileName.replace('csv', 'zip');
+      const expectedName = fileName.replace('xlsx', 'zip');
       expect(fileData).to.be.a('object');
       expect(fileData.title).to.equal(expectedName);
       expect(fileData.filename_disk).to.equal(expectedName);
