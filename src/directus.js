@@ -27,14 +27,49 @@ async function resetRedis(fileName) {
   await redis.set(`${fileName}_error`, '');
 }
 
+async function saveMailLog(client, item, email, mailSent) {
+  // format attributes to save on the email_log collection
+  const attributes = {
+    request_id: item.id, // the id of the requeste for analysis
+    file_id: item.result_file, // the result file id
+    sent_to: email,
+    sent_at: help.dateMysqlFormat(new Date()),
+    status: 'sent', // might be overwritten if something goes wrong
+  };
+
+  // save e-mail error
+  if (!mailSent || mailSent.error) {
+    attributes.status = 'error';
+    if (mailSent.error && mailSent.error.message) attributes.error = mailSent.error.message;
+  }
+
+  // save email log
+  const res = await client.createItem(emailLogCollection, attributes);
+
+  if (!res || !res.data) throw new Error('Could not save email log');
+
+  return attributes.status !== 'error';
+}
+
 async function saveError(fileName, errors) {
   const client = await getDirectusClient();
   const itemID = fileName.substr(0, fileName.indexOf('_'));
   const error = help.formatErrorMsg(errors);
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, { status: 'error', error });
   console.log('updatedItemError', updatedItem);
+
   fs.unlinkSync(`${tmpPath}/${fileName}`);
   await resetRedis(fileName);
+
+  const { data: item } = await client.getItem(userRequestsCollection, itemID);
+  const owner = await client.getUser(item.owner);
+
+  const subject = 'Pegabots - Erro análise';
+  const body = `Não foi possível concluir a análise ${item.id}.`;
+
+  const email = help.getEveryEmailFromItem(item, owner);
+  const mailSent = await mailer.sendEmail(email, subject, body, [{ filename: `erros_${itemID}.txt`, content: error }]);
+  return saveMailLog(client, item, email, mailSent);
 }
 
 async function getCollections() { // eslint-disable-line
@@ -155,40 +190,12 @@ async function sendMail(item, filelink) {
   // copy texts and add file link to body
   const mailData = JSON.parse(JSON.stringify(mailer.mailText.results));
   mailData.body = mailData.body.replace('<FILE_LINK>', newFileLink);
-  let email = item.email || '';
 
-  // get item owner e-mail and add it to email list
   const owner = await client.getUser(item.owner);
-  const ownerMail = owner && owner.data && owner.data.email ? owner.data.email : '';
-  if (!email) {
-    email = ownerMail;
-  } else {
-    email += `, ${ownerMail}`;
-  }
+  const email = help.getEveryEmailFromItem(item, owner);
 
   const mailSent = await mailer.sendEmail(email, mailData.subject, mailData.body);
-
-  // format attributes to save on the email_log collection
-  const attributes = {
-    request_id: item.id, // the id of the requeste for analysis
-    file_id: item.result_file, // the result file id
-    sent_to: email,
-    sent_at: help.dateMysqlFormat(new Date()),
-    status: 'sent', // might be overwritten if something goes wrong
-  };
-
-  // save e-mail error
-  if (!mailSent || mailSent.error) {
-    attributes.status = 'error';
-    if (mailSent.error && mailSent.error.message) attributes.error = mailSent.error.message;
-  }
-
-  // save email log
-  const res = await client.createItem(emailLogCollection, attributes);
-
-  if (!res || !res.data) throw new Error('Could not save email log');
-
-  return attributes.status !== 'error';
+  return saveMailLog(client, item, email, mailSent);
 }
 
 async function sendResultMail(updatedItem, fileName, whereToLoad = outPath) {

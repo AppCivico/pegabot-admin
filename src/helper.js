@@ -23,6 +23,23 @@ function dateMysqlFormat(date) {
   return `${date.getUTCFullYear()}-${twoDigits(1 + date.getUTCMonth())}-${twoDigits(date.getUTCDate())} ${twoDigits(date.getUTCHours())}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())}`;
 }
 
+// Joins the item owner e-mail with the e-mails configured on item
+// client: await client.getItem('user_requests', itemID);
+// owner: await client.getUser(item.owner);
+function getEveryEmailFromItem(item, owner) {
+  let res = item.email || '';
+
+  // get item owner e-mail and add it to email list
+  const ownerMail = owner && owner.data && owner.data.email ? owner.data.email : '';
+  if (!res) {
+    res = ownerMail;
+  } else {
+    res += `, ${ownerMail}`;
+  }
+
+  return res;
+}
+
 function checkValue(value) {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') return value;
@@ -192,4 +209,5 @@ export default {
   getCSVKey,
   formatScreenname,
   getFileContent,
+  getEveryEmailFromItem,
 };
