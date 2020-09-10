@@ -96,7 +96,7 @@ async function saveResult(result) {
 
   await fs.writeFileSync(filepath, xlsxData, 'binary');
 
-  return newFilename;
+  return filepath;
 }
 
 async function saveResultsForLater(resultKey, results, waitTime) {
