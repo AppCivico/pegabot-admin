@@ -104,6 +104,7 @@ async function requestPegabot(profile) {
     authenticated: false,
     profile,
     getData: true,
+    is_admin: true,
   };
 
   try {
