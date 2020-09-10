@@ -108,7 +108,7 @@ async function requestPegabot(profile) {
   };
 
   try {
-    console.log('Fazendo request para ', profile);
+    console.log('Fazendo request para', profile);
     const result = await axios({ url: `${pegabotAPI}/botometer`, method: 'get', params: searchParams });
     if (!result) throw new Error('Não houve resposta da api');
     if (Array.isArray(result.data) && result.data.length === 0) throw new Error('Parece que usuário não tem tweets na timeline');

@@ -155,7 +155,16 @@ async function sendMail(item, filelink) {
   // copy texts and add file link to body
   const mailData = JSON.parse(JSON.stringify(mailer.mailText.results));
   mailData.body = mailData.body.replace('<FILE_LINK>', newFileLink);
-  const { email } = item;
+  let email = item.email || '';
+
+  // get item owner e-mail and add it to email list
+  const owner = await client.getUser(item.owner);
+  const ownerMail = owner && owner.data && owner.data.email ? owner.data.email : '';
+  if (!email) {
+    email = ownerMail;
+  } else {
+    email += `, ${ownerMail}`;
+  }
 
   const mailSent = await mailer.sendEmail(email, mailData.subject, mailData.body);
 
@@ -189,7 +198,7 @@ async function sendResultMail(updatedItem, fileName, whereToLoad = outPath) {
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
     const file = await getOneFile(updatedItem.data.output_file);
     // if there's an e-mail set, send the result file to the e-mail
-    if (updatedItem.data.email && file && file.data && file.data.url) {
+    if (file && file.data && file.data.url) {
       const canDelete = await sendMail(updatedItem.data, file.data.url);
       // delete file from /out only if it was sent by e-mail successfully
       if (canDelete) fs.unlinkSync(localfile);

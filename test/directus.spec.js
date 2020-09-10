@@ -269,15 +269,18 @@ describe('saveFilesToDisk', () => {
 
 describe('sendMail', () => {
   const fileLink = '/myfile.zip';
+  const testMail = 'foobar@teste.com';
 
   beforeEach(() => {
     sinon.stub(DirectusSDK.prototype, 'login').callsFake();
+    sinon.stub(DirectusSDK.prototype, 'getUser').callsFake(() => ({ data: { email: testMail } }));
     sinon.stub(DirectusSDK.prototype, 'createItem').callsFake(() => ({ data: 'foobar' }));
     sinon.stub(mailer, 'sendEmail').callsFake((email) => (email.includes('2') ? { error: 'foobar' } : {}));
   });
 
   afterEach(() => {
     DirectusSDK.prototype.login.restore();
+    DirectusSDK.prototype.getUser.restore();
     DirectusSDK.prototype.createItem.restore();
     mailer.sendEmail.restore();
   });
@@ -285,28 +288,34 @@ describe('sendMail', () => {
   it('Mail sent with formated text and log added', async () => {
     const itemToUse = mockItems[0];
 
-    const expectedMail = itemToUse.email;
+    let expectedMail = itemToUse.email;
+    expectedMail += `, ${testMail}`;
+    expectedMail = expectedMail.trim();
     const expectedSubject = mailer.mailText.results.subject;
     let expectedBody = mailer.mailText.results.body;
     expectedBody = expectedBody.replace('<FILE_LINK>', process.env.DIRECTUS_HOST + fileLink);
 
     const res = await directus.sendMail(itemToUse, fileLink);
 
+    expect(DirectusSDK.prototype.getUser.calledOnceWith(itemToUse.owner)).to.be.true;
     expect(mailer.sendEmail.calledOnceWith(expectedMail, expectedSubject, expectedBody)).to.be.true;
     expect(DirectusSDK.prototype.createItem.calledOnce).to.be.true;
     expect(res).to.be.true;
   });
 
-  it('Mail had an error but log is saved anyway', async () => {
+  it('Mail had an error but log is saved anyway (empty item mail, gets e-mail from item owner)', async () => {
     const itemToUse = mockItems[1];
 
-    const expectedMail = itemToUse.email;
+    let expectedMail = itemToUse.email;
+    expectedMail += `${testMail}`;
+    expectedMail = expectedMail.trim();
     const expectedSubject = mailer.mailText.results.subject;
     let expectedBody = mailer.mailText.results.body;
     expectedBody = expectedBody.replace('<FILE_LINK>', process.env.DIRECTUS_HOST + fileLink);
 
     const res = await directus.sendMail(itemToUse, fileLink);
 
+    expect(DirectusSDK.prototype.getUser.calledOnceWith(itemToUse.owner)).to.be.true;
     expect(mailer.sendEmail.calledOnceWith(expectedMail, expectedSubject, expectedBody)).to.be.true;
     expect(DirectusSDK.prototype.createItem.calledOnce).to.be.true;
     expect(res).to.be.true;
