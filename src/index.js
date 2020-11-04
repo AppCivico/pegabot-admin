@@ -5,13 +5,13 @@ import redis from './redis';
 
 const shouldStart = process.env.NODE_ENV !== 'dev';
 
-redis.set('current_processing', 0);
-
 const Cron = new CronJob(
   ' 00 0-59/1 * * * *', async () => {
     console.log('Running análise');
     try {
       const currentProcessing = await redis.get('current_processing');
+      if (typeof currentProcessing === 'undefined') await redis.set('current_processing', 0);
+      
       console.log('current_processing: ' + currentProcessing);
       if (currentProcessing == 0) {
         console.log(await app.procedure());
