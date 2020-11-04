@@ -198,6 +198,7 @@ async function getOutputCSV() {
   if (!nextExecutionTime || !help.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
     const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
+      await redis.set('current_processing', 0);
       const filename = fileNames[i];
 
       const analysedNow = itemStatuses[filename];
@@ -234,6 +235,7 @@ async function procedure() {
   await directus.populateIn();
   await getOutputCSV();
   await directus.getResults();
+  await redis.set('current_processing', 0);
 }
 
 export default { procedure };
