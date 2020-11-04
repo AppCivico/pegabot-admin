@@ -198,7 +198,7 @@ async function getOutputCSV() {
   if (!nextExecutionTime || !help.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
     const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
-      await redis.set('current_processing', 0);
+      await redis.set('current_processing', 1);
       const filename = fileNames[i];
 
       const analysedNow = itemStatuses[filename];
