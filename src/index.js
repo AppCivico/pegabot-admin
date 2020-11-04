@@ -5,6 +5,8 @@ import redis from './redis';
 
 const shouldStart = process.env.NODE_ENV !== 'dev';
 
+redis.set('current_processing', 0);
+
 const Cron = new CronJob(
   ' 00 0-59/1 * * * *', async () => {
     console.log('Running análise');
