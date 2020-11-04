@@ -220,6 +220,8 @@ async function getOutputCSV() {
         if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result);
           const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
+        
+          fs.unlinkSync(`./tmp/${filename}`);
           if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
           await directus.saveError(result.filename, result.errors);
