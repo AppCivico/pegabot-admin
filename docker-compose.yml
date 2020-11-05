@@ -19,21 +19,6 @@ services:
       - directus
       - redis
     restart: unless-stopped
-  api:
-    container_name: pegabot-admin-api
-    build:
-      context: ./api
-      dockerfile: ./Dockerfile
-    ports:
-      - "3100:1337"
-    expose: 
-      - "3100"
-    volumes:
-      - .:/home/node/app_pegabots_api
-      - /home/node/app_pegabots_api/node_modules
-    networks:
-      - directus
-    restart: unless-stopped
   mysql:
     image: mysql:5.7
     container_name: pegabot-mysql
