@@ -107,6 +107,11 @@ async function updateFileStatus(fileName, newStatus) {
 async function getFilesToProcess() {
   const client = await getDirectusClient();
 
+  console.log("============================");
+
+  console.log(client);
+  console.log("============================");
+
   // search for files with status "waitin"
   const toProcess = await client.getItems(userRequestsCollection, { filter: { status: { eq: 'waiting' } } });
 
