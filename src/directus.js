@@ -225,7 +225,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   const client = await getDirectusClient();
   const localfile = `${whereToLoad}/${fileName}`;
   const zip = new AdmZip(); // create archive
-  await zip.addLocalFile(localfile); // add local file
+  await zip.addLocalFile(fileName); // add local file
   const willSendthis = zip.toBuffer(); // get everything as a buffer
   const newFileName = fileName.replace('xlsx', 'zip');
 
