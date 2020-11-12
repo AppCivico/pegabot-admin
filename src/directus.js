@@ -235,9 +235,12 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
     title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
   });
 
+  console.log('filename: ' + fileName);
   const fileID = fileData.data.id; // get the file id
   let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+  console.log('itemId: ' + itemID);
   itemID = itemID.substr(0, 6);
+  console.log('itemId: ' + itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
