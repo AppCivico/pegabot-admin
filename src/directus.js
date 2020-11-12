@@ -204,7 +204,7 @@ async function sendMail(item, filelink) {
 }
 
 async function sendResultMail(updatedItem, fileName, whereToLoad = outPath) {
-  const localfile = `${whereToLoad}/${fileName}`;
+  const localfile = fileName;
 
   // if item was uploaded correctly
   if (updatedItem && updatedItem.data && updatedItem.data.id) {
@@ -238,9 +238,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   console.log('filename: ' + fileName);
   const fileID = fileData.data.id; // get the file id
   let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
-  console.log('itemId: ' + itemID);
   itemID = itemID.substring(itemID.length - 2, itemID.length);
-  console.log('itemId: ' + itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
