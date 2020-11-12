@@ -239,7 +239,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   const fileID = fileData.data.id; // get the file id
   let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   console.log('itemId: ' + itemID);
-  itemID = itemID.substring(0, 6);
+  itemID = itemID.substring(itemID.length - 2, itemID.length);
   console.log('itemId: ' + itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
