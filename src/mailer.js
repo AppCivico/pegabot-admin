@@ -30,7 +30,7 @@ async function sendEmail(to, subject, html, attachments = []) {
     console.log(`'${subject}' para ${to}:`, info.messageId, `with ${options.attachments.length} attachments`);
     return true;
   } catch (error) {
-    console.log('Could not send mail to ', to, 'Error => ', error);
+    console.error('Could not send mail to ', to, 'Error => ', error);
     return { error };
   }
 }

@@ -62,7 +62,11 @@ services:
     volumes:
       - .:/home/node/app_pegabots_admin
       - /home/node/app_pegabots_admin/node_modules
+      - ./log:/home/node/app_pegabots_admin/log/
     networks:
       - database
       - redis
     restart: unless-stopped
+    environment:
+      LOG_LEVEL: 'DEBUG'
+
