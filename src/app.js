@@ -1,8 +1,13 @@
+require('console-stamp')(console, '[HH:MM:ss.l]');
+
 import fs from 'fs';
 import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
+
+var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
+process.stdout.write = process.stderr.write = access.write.bind(access);
 
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
@@ -95,6 +100,8 @@ async function saveResult(result) {
   const filepath = `${outPath}/${newFilename}`;
 
   await fs.writeFileSync(filepath, xlsxData, 'binary');
+
+  console.log('[saveResult] filepath: ' + filepath);
 
   return filepath;
 }
@@ -198,12 +205,16 @@ async function getOutputCSV() {
   if (!nextExecutionTime || !help.isValidDate(nextExecutionTime) || now > nextExecutionTime) {
     const fileNames = await fs.readdirSync(tmpPath);
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
-      await redis.set('current_processing', 1);
       const filename = fileNames[i];
+
+      console.log('[getOutputCSV] start processing filename: ' + filename);
 
       const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
       if (!analysedNow) {
+        await redis.set('current_processing', 1);
+        await redis.set('current_file_name', filename);
+
         itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
         const content = await help.getFileContent(newPath);
@@ -212,7 +223,9 @@ async function getOutputCSV() {
         // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
         if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
         const result = await getResults(content, filename);
+
         itemStatuses[filename] = false;
+        await redis.set('current_file_name', undefined);
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
@@ -234,10 +247,34 @@ async function getOutputCSV() {
 }
 
 async function procedure() {
-  await directus.populateIn();
-  await getOutputCSV();
-  await directus.getResults();
-  await redis.set('current_processing', 0);
+  try {
+    console.info('exec populateIn');
+    await directus.populateIn();
+
+    console.info('exec getOutputCSV');
+    await getOutputCSV();
+
+    console.info('exec getResults');
+    await directus.getResults();
+
+    console.info('updating redis, set current_processing to 0');
+    await redis.set('current_processing', 0);
+  } catch (error) {
+    console.error(error);
+  
+    // In case of any error, try to update both the file and redis
+    await redis.set('current_processing', 0);
+
+    const fileId = await redis.get('current_file_directus_id');
+    if (fileId) {
+      const client = await getDirectusClient();
+
+      await client.updateItem(userRequestsCollection, itemID, {
+        status: 'error', analysis_date: analysisDate, error,
+      });
+    }
+    
+  }
 }
 
 export default { procedure };
