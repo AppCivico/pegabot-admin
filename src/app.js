@@ -225,7 +225,7 @@ async function getOutputCSV() {
         const result = await getResults(content, filename);
 
         itemStatuses[filename] = false;
-        await redis.set('current_file_name', undefined);
+        await redis.set('current_file_name', '');
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
