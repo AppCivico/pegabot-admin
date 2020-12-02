@@ -214,7 +214,7 @@ async function getOutputCSV() {
       // if file is being analysed right now, ignore it
       if (!analysedNow) {
         await redis.set('current_processing', 1);
-        await redis.set('current_file_name', filename);
+        // await redis.set('current_file_name', filename);
 
         itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
@@ -226,7 +226,7 @@ async function getOutputCSV() {
         const result = await getResults(content, filename);
 
         itemStatuses[filename] = false;
-        await redis.set('current_file_name', '');
+        // await redis.set('current_file_name', '');
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
@@ -270,8 +270,8 @@ async function procedure() {
     if (fileId) {
       const client = await getDirectusClient();
 
-      await client.updateItem(userRequestsCollection, itemID, {
-        status: 'error', analysis_date: analysisDate, error,
+      await client.updateItem('user_requests', itemID, {
+        status: 'error', error,
       });
     }
     
