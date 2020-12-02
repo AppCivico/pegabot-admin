@@ -5,6 +5,7 @@ import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
+import getDirectusClient from './DirectusSDK';
 
 var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
 process.stdout.write = process.stderr.write = access.write.bind(access);
