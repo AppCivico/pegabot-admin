@@ -270,7 +270,7 @@ async function procedure() {
     if (fileId) {
       const client = await getDirectusClient();
 
-      await client.updateItem('user_requests', itemID, {
+      await client.updateItem('user_requests', fileId, {
         status: 'error', error,
       });
     }
