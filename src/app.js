@@ -136,6 +136,9 @@ async function getResults(profiles, filename) {
     for (let i = 0; i < profiles.length; i++) { // eslint-disable-line
       const line = profiles[i];
 
+      // Savepoint
+      await redis.set(`filename_${filename}_current_line` , i);
+
       // get the user key from the CSV
       const keyToUse = help.getCSVKey(line);
 
@@ -182,6 +185,8 @@ async function getResults(profiles, filename) {
         }
       }
     }
+
+    await redis.del(`filename_${filename}_current_line`);
 
     // return that we have to wait for time to pass
     if (waitTime) return { waitTime };
