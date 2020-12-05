@@ -1,10 +1,13 @@
 import fs from 'fs';
 import axios from 'axios';
 import AdmZip from 'adm-zip';
+import Debug from 'debug';
 import mailer from './mailer';
 import redis from './redis';
 import help from './helper';
 import getDirectusClient from './DirectusSDK';
+
+const debug = Debug('pegabot-admin:app');
 
 const userRequestsCollection = 'user_requests';
 const emailLogCollection = 'email_log';
@@ -106,19 +109,19 @@ async function updateFileStatus(fileName, newStatus) {
 async function getFilesToProcess() {
   const client = await getDirectusClient();
 
-  console.log('[getFilesToProcess] Fetching files with status "waiting"');
+  debug('[getFilesToProcess] Fetching files with status "waiting"');
 
   // search for files with status "waitin"
   const toProcess = await client.getItems(userRequestsCollection, { filter: { status: { eq: 'waiting' } } });
 
   // no files to process were found
   if (!toProcess || !toProcess.data || toProcess.data.length === 0) {
-    console.log('[getFilesToProcess] No files with status "waiting"');
-    
-    return []
+    debug('[getFilesToProcess] No files with status "waiting"');
+
+    return [];
   };
 
-  const { data: allFiles } = await client.getFiles();
+  const { data: allFiles } = await client.getFiles({ limit: -1 });
   const desiredFiles = [];
 
   // get details of all the files we want
@@ -142,7 +145,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
 
     const fileName = file.filename_download;
 
-    console.log('[saveFilesToDisk] file_id: ' + file.id + ', itemID: ' + file.itemID + ', filename: ' + fileName);
+    debug('[saveFilesToDisk] file_id: ' + file.id + ', itemID: ' + file.itemID + ', filename: ' + fileName);
 
     if (fileName.endsWith('.zip')) { // handle zip files
       foundValid = true;
@@ -153,7 +156,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       const zip = new AdmZip(res.data); // load zip buffer
       const zipEntries = zip.getEntries();
 
-      zipEntries.forEach((entry, i) => { // eslint-disable-line
+      zipEntries.forEach((entry, i) => {
         const { entryName } = entry;
 
         const isInvalidFile = help.checkInvalidFiles(entryName);
@@ -168,14 +171,14 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
 
       if (validOnZip) zip.extractAllTo(whereToSave); // extract files from zip
     } else if (fileName.endsWith('.csv') || fileName.endsWith('xls') || fileName.endsWith('xlsx')) {
-      console.log('[saveFilesToDisk] Is a spreadsheet');
+      debug('[saveFilesToDisk] Is a spreadsheet');
 
       const newFilePath = `${whereToSave}/${file.itemID}_${file.filename_download}`;
       const res = await axios.get(file.data.full_url, { responseType: 'arraybuffer' });
       fs.writeFileSync(newFilePath, res.data);
       foundValid = true;
 
-      console.log('[saveFilesToDisk] New path: ' + newFilePath);
+      debug('[saveFilesToDisk] New path: ' + newFilePath);
     }
 
     let error = '';
@@ -240,12 +243,12 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   const fileData = await client.uploadFiles({
     title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
   });
-  
+
   const fileID = fileData.data.id; // get the file id
   let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   // itemID = itemID.substring(itemID.length - 2, fileName.indexOf('/'));
   itemID = itemID.match(/(\d){1,}/g);
-  
+
   await redis.set('current_file_directus_id', itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
@@ -254,7 +257,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   });
 
   if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
-  
+
   await redis.set('current_file_directus_id', undefined);
 
   return updatedItem;
@@ -274,7 +277,7 @@ async function populateIn() {
   const files = await getFilesToProcess();
 
   if (files) {
-    console.log('There are files pending');
+    debug('There are files pending');
 
     console.info('exec saveFilesToDisk');
     await saveFilesToDisk(files)
