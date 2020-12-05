@@ -212,13 +212,13 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
 
-      console.log('[getOutputCSV] start processing filename: ' + filename);
+      console.log(`[getOutputCSV] start processing filename: ${filename}`);
 
       const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
       if (!analysedNow) {
         await redis.set('current_processing', 1);
-        await redis.set('current_file_name', filename);
+        // await redis.set('current_file_name', filename);
 
         itemStatuses[filename] = true;
         const newPath = `${tmpPath}/${filename}`;
@@ -237,7 +237,7 @@ async function getOutputCSV() {
         const result = await getResults(content, filename);
 
         itemStatuses[filename] = false;
-        await redis.set('current_file_name', undefined);
+        // await redis.set('current_file_name', undefined);
 
         // if waitTime, then break out of loop and wait for the "ExecutionTime" to pass
         if (result && result.waitTime) break;
