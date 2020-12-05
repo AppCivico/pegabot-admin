@@ -1,13 +1,15 @@
-require('console-stamp')(console, '[HH:MM:ss.l]');
-
 import fs from 'fs';
 import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
+import getDirectusClient from './DirectusSDK';
 
-var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
-process.stdout.write = process.stderr.write = access.write.bind(access);
+require('console-stamp')(console, '[HH:MM:ss.l]');
+
+// var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
+// var access = fs.createWriteStream('/home/junior/projects/pegabot-admin/data/log');
+// process.stdout.write = process.stderr.write = access.write.bind(access);
 
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
@@ -15,6 +17,8 @@ const outPath = `${process.env.NODE_PATH}/out`;
 
 const rateLimitMaximum = process.env.RATE_LIMIT_MAXIMUM ? parseInt(process.env.RATE_LIMIT_MAXIMUM, 10) : 10;
 const nextExecutionKey = 'next_execution';
+
+const userRequestsCollection = 'user_requests';
 
 async function sendInToTmp() {
   const fileNames = await fs.readdirSync(inPath);
@@ -101,7 +105,7 @@ async function saveResult(result) {
 
   await fs.writeFileSync(filepath, xlsxData, 'binary');
 
-  console.log('[saveResult] filepath: ' + filepath);
+  console.log(`[saveResult] filepath: ${filepath}`);
 
   return filepath;
 }
@@ -132,7 +136,8 @@ async function getResults(profiles, filename) {
     // save string result as json (if it exists)
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
-    for (let i = 0; i < profiles.length; i++) { // eslint-disable-line
+    let progress = 0;
+    for (let i = 0; i < profiles.length; i++) {
       const line = profiles[i];
 
       // get the user key from the CSV
@@ -150,7 +155,7 @@ async function getResults(profiles, filename) {
           allErrors.push(error); // store all errors
         } else {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-          if (!results[screenName]) { // eslint-disable-line no-lonely-if
+          if (!results[screenName]) {
           // make request to the pegabotAPI
             const reqAnswer = await help.requestPegabot(screenName);
 
@@ -219,9 +224,16 @@ async function getOutputCSV() {
         const newPath = `${tmpPath}/${filename}`;
         const content = await help.getFileContent(newPath);
 
-        const { status: fileStatus } = await directus.getFileItem(filename);
+        // const { status: fileStatus } = await directus.getFileItem(filename);
         // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
-        if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
+        // if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
+
+        // Set progress to zero percent and file status to 'analysing'
+        const itemId = filename.substr(0, filename.indexOf('_'));
+        const client = await getDirectusClient();
+        await client.updateItem(userRequestsCollection, itemId, { status: 'analysing', progress: 0 });
+
+        // await directus.updateFileStatus(filename, 'analysing');
         const result = await getResults(content, filename);
 
         itemStatuses[filename] = false;
@@ -233,7 +245,7 @@ async function getOutputCSV() {
         if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result);
           const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
-        
+
           fs.unlinkSync(`./tmp/${filename}`);
           if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
@@ -261,7 +273,7 @@ async function procedure() {
     await redis.set('current_processing', 0);
   } catch (error) {
     console.error(error);
-  
+
     // In case of any error, try to update both the file and redis
     await redis.set('current_processing', 0);
 
@@ -273,7 +285,7 @@ async function procedure() {
         status: 'error', analysis_date: analysisDate, error,
       });
     }
-    
+
   }
 }
 
