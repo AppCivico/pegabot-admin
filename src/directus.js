@@ -258,7 +258,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
 
   if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
 
-  await redis.set('current_file_directus_id', undefined);
+  await redis.del('current_file_directus_id');
 
   return updatedItem;
 }
