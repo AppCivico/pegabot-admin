@@ -137,10 +137,11 @@ async function getResults(profiles, filename) {
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
     let progress = 0;
-    for (let i = 0; i < profiles.length; i++) {
+    const profilesCount = profiles.length;
+    for (let i = 0; i < profilesCount; i += 1) {
       const line = profiles[i];
 
-      // get the user key from the CSV
+      // Get the user key from the CSV
       const keyToUse = help.getCSVKey(line);
 
       if (!keyToUse) { // if there's no valid key, save the error
@@ -184,6 +185,20 @@ async function getResults(profiles, filename) {
             }
           }
         }
+      }
+
+      // Set progress
+      progress = Math.round((100 - ((profilesCount - (i + 1)) * 100) / profilesCount) - 1);
+      if (progress < 0) progress = 0;
+      if (progress > 99) progress = 99;
+
+      let progressOffset = profilesCount / 100;
+      if (progressOffset < 10) { progressOffset = 10 } // Min offset
+
+      if (progressOffset >= 1 && i % progressOffset === 0) {
+        const itemId = filename.substr(0, filename.indexOf('_'));
+        const client = await getDirectusClient();
+        await client.updateItem(userRequestsCollection, itemId, { progress });
       }
     }
 
