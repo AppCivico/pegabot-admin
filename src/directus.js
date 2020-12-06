@@ -245,7 +245,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   });
 
   const fileID = fileData.data.id; // get the file id
-  let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+  let itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   // itemID = itemID.substring(itemID.length - 2, fileName.indexOf('/'));
   itemID = itemID.match(/(\d){1,}/g);
 
@@ -253,7 +253,11 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
 
   const analysisDate = help.dateMysqlFormat(new Date());
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
-    status: 'complete', output_file: fileID, analysis_date: analysisDate, error,
+    status: 'complete',
+    output_file: fileID,
+    analysis_date: analysisDate,
+    error,
+    progress: 100,
   });
 
   if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
@@ -265,11 +269,15 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
 
 // save each file inside of the /out directory on direct
 async function getResults() {
-  const fileNames = await fs.readdirSync(outPath);
+  const fileNames = fs.readdirSync(outPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const fileName = fileNames[i];
+
     const updatedItem = await saveFileToDirectus(fileName);
-    if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName);
+    if (updatedItem && !updatedItem.error) {
+      // Send email
+      await sendResultMail(updatedItem, fileName);
+    }
   }
 }
 
