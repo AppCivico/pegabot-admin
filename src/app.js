@@ -193,9 +193,9 @@ async function getResults(profiles, filename) {
       if (progress > 99) progress = 99;
 
       let progressOffset = profilesCount / 100;
-      if (progressOffset < 10) { progressOffset = 10 } // Min offset
+      if (progressOffset < 10) { progressOffset = 10; } // Min offset
 
-      if (progressOffset >= 1 && i % progressOffset === 0) {
+      if (i > 0 && i % progressOffset === 0) {
         const itemId = filename.substr(0, filename.indexOf('_'));
         const client = await getDirectusClient();
         await client.updateItem(userRequestsCollection, itemId, { progress });
