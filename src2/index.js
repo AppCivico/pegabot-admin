@@ -6,7 +6,8 @@ import redis from './redis';
 const shouldStart = process.env.NODE_ENV !== 'dev';
 
 const Cron = new CronJob(
-  ' 00 0-59/1 * * * *', async () => {
+  '*/10 * * * * *', async () => {
+  // ' 00 0-59/1 * * * *', async () => {
     try {
       const currentProcessing = await redis.get('current_processing');
       if (typeof currentProcessing === 'undefined') await redis.set('current_processing', 0);
