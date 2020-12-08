@@ -25,7 +25,8 @@
     "pm2:list": "docker exec -it pegabot-admin-app pm2 list",
     "pm2:logs": "docker exec -it pegabot-admin-app pm2 logs 0",
     "pm2:restart": "docker exec -it pegabot-admin-app pm2 restart 0",
-    "pm2:stop": "docker exec -it pegabot-admin-app pm2 stop 0"
+    "pm2:stop": "docker exec -it pegabot-admin-app pm2 stop 0",
+    "worker": "babel-node src/worker.js"
   },
   "author": "Jordan Victor",
   "license": "ISC",
@@ -41,6 +42,7 @@
     "adm-zip": "^0.4.16",
     "axios": "^0.19.2",
     "babel-plugin-module-resolver": "^4.0.0",
+    "bull": "^3.20.0",
     "chai-fs": "^2.0.0",
     "console-stamp": "^0.2.9",
     "convert-excel-to-json": "^1.7.0",
