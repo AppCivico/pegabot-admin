@@ -124,9 +124,8 @@ async function getResults(profiles, filename) {
   const allErrors = [];
 
   // Init storage
-  // TODO Get storage directory from env
   await storage.init({
-    dir: '/home/junior/projects/pegabot-admin/data/storage',
+    dir: process.env.PEGABOT_ADMIN_CACHE,
     stringify: JSON.stringify,
     parse: JSON.parse,
     encoding: 'utf8',
