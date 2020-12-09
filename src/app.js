@@ -1,14 +1,10 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
+import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
 import getDirectusClient from './DirectusSDK';
-
-require('console-stamp')(console, '[HH:MM:ss.l]');
-
-var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
-process.stdout.write = process.stderr.write = access.write.bind(access);
 
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
@@ -129,9 +125,22 @@ async function getResults(profiles, filename) {
   const errorKey = `${filename}_error`;
   const allErrors = [];
 
+  // Init storage
+  await storage.init({
+    dir: process.env.PEGABOT_ADMIN_CACHE,
+    stringify: JSON.stringify,
+    parse: JSON.parse,
+    encoding: 'utf8',
+    logging: false,
+    ttl: false,
+    expiredInterval: 60 * 60 * 1000,
+    forgiveParseErrors: false,
+  });
+
   try {
     // check if we already analysed a part of this file
     const oldResult = await redis.get(resultKey);
+
     // save string result as json (if it exists)
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
@@ -141,7 +150,7 @@ async function getResults(profiles, filename) {
       const line = profiles[i];
 
       // Savepoint
-      await redis.set(`filename_${filename}_current_line` , i);
+      await redis.set(`filename_${filename}_current_line`, i);
 
       // get the user key from the CSV
       const keyToUse = help.getCSVKey(line);
@@ -157,13 +166,22 @@ async function getResults(profiles, filename) {
           const error = { line: i, msg: 'Nome de perfil inválido! Tenha certeza de que é apenas um texto!' };
           allErrors.push(error); // store all errors
         } else {
-          // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-          if (!results[screenName]) {
-          // make request to the pegabotAPI
+          // If we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
+          console.info(`Processando o perfil ${screenName}...`);
+
+          results[screenName] = await storage.getItem(screenName);
+          if (results[screenName]) {
+            hasOneResult = true;
+          }
+          else {
+            // Make request to the pegabotAPI
+            console.log('Fazendo request para o pegabot...');
             const reqAnswer = await help.requestPegabot(screenName);
 
-            results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
+              // Cache response
+              await storage.setItem(screenName, reqAnswer);
+              results[screenName] = reqAnswer;
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
@@ -231,7 +249,7 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
 
-      console.log(`[getOutputCSV] start processing filename: ${filename}`);
+      console.info(`[getOutputCSV] start processing filename: ${filename}`);
 
       const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
@@ -304,7 +322,6 @@ async function procedure() {
         status: 'error', analysis_date: analysisDate, error,
       });
     }
-
   }
 }
 

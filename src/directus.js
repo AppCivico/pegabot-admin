@@ -114,8 +114,8 @@ async function getFilesToProcess() {
   // no files to process were found
   if (!toProcess || !toProcess.data || toProcess.data.length === 0) {
     console.log('[getFilesToProcess] No files with status "waiting"');
-    
-    return []
+
+    return [];
   };
 
   const { data: allFiles } = await client.getFiles({ limit: -1 });
