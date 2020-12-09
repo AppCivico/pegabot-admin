@@ -45,6 +45,7 @@
     "console-stamp": "^0.2.9",
     "convert-excel-to-json": "^1.7.0",
     "cron": "^1.8.2",
+    "debug": "^4.3.1",
     "dotenv": "^8.2.0",
     "eslint-plugin-chai-friendly": "^0.6.0",
     "fs": "^0.0.1-security",

@@ -1,11 +1,11 @@
-require('console-stamp')(console, '[HH:MM:ss.l]');
-
 import fs from 'fs';
 import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
 import getDirectusClient from './DirectusSDK';
+
+require('console-stamp')(console, '[HH:MM:ss.l]');
 
 var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
 process.stdout.write = process.stderr.write = access.write.bind(access);
@@ -16,6 +16,8 @@ const outPath = `${process.env.NODE_PATH}/out`;
 
 const rateLimitMaximum = process.env.RATE_LIMIT_MAXIMUM ? parseInt(process.env.RATE_LIMIT_MAXIMUM, 10) : 10;
 const nextExecutionKey = 'next_execution';
+
+const userRequestsCollection = 'user_requests';
 
 async function sendInToTmp() {
   const fileNames = await fs.readdirSync(inPath);
@@ -102,7 +104,7 @@ async function saveResult(result) {
 
   await fs.writeFileSync(filepath, xlsxData, 'binary');
 
-  console.log('[saveResult] filepath: ' + filepath);
+  console.log(`[saveResult] filepath: ${filepath}`);
 
   return filepath;
 }
@@ -133,7 +135,9 @@ async function getResults(profiles, filename) {
     // save string result as json (if it exists)
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
-    for (let i = 0; i < profiles.length; i++) { // eslint-disable-line
+    let progress = 0;
+    const profilesCount = profiles.length;
+    for (let i = 0; i < profilesCount; i += 1) {
       const line = profiles[i];
 
       // Savepoint
@@ -154,7 +158,7 @@ async function getResults(profiles, filename) {
           allErrors.push(error); // store all errors
         } else {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-          if (!results[screenName]) { // eslint-disable-line no-lonely-if
+          if (!results[screenName]) {
           // make request to the pegabotAPI
             const reqAnswer = await help.requestPegabot(screenName);
 
@@ -183,6 +187,20 @@ async function getResults(profiles, filename) {
             }
           }
         }
+      }
+
+      // Set progress
+      progress = Math.round((100 - ((profilesCount - (i + 1)) * 100) / profilesCount) - 1);
+      if (progress < 0) progress = 0;
+      if (progress > 99) progress = 99;
+
+      let progressOffset = profilesCount / 100;
+      if (progressOffset < 10) { progressOffset = 10; } // Min offset
+
+      if (i > 0 && i % progressOffset === 0) {
+        const itemId = filename.substr(0, filename.indexOf('_'));
+        const client = await getDirectusClient();
+        await client.updateItem(userRequestsCollection, itemId, { progress });
       }
     }
 
@@ -213,7 +231,7 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
 
-      console.log('[getOutputCSV] start processing filename: ' + filename);
+      console.log(`[getOutputCSV] start processing filename: ${filename}`);
 
       const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
@@ -225,9 +243,16 @@ async function getOutputCSV() {
         const newPath = `${tmpPath}/${filename}`;
         const content = await help.getFileContent(newPath);
 
-        const { status: fileStatus } = await directus.getFileItem(filename);
+        // const { status: fileStatus } = await directus.getFileItem(filename);
         // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
-        if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
+        // if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
+
+        // Set progress to zero percent and file status to 'analysing'
+        const itemId = filename.substr(0, filename.indexOf('_'));
+        const client = await getDirectusClient();
+        await client.updateItem(userRequestsCollection, itemId, { status: 'analysing', progress: 0 });
+
+        // await directus.updateFileStatus(filename, 'analysing');
         const result = await getResults(content, filename);
 
         itemStatuses[filename] = false;
@@ -239,7 +264,7 @@ async function getOutputCSV() {
         if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result);
           const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
-        
+
           fs.unlinkSync(`./tmp/${filename}`);
           if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
@@ -267,7 +292,7 @@ async function procedure() {
     await redis.set('current_processing', 0);
   } catch (error) {
     console.error(error);
-  
+
     // In case of any error, try to update both the file and redis
     await redis.set('current_processing', 0);
 
@@ -275,11 +300,11 @@ async function procedure() {
     if (fileId) {
       const client = await getDirectusClient();
 
-      await client.updateItem('user_requests', fileId, {
-        status: 'error',
+      await client.updateItem(userRequestsCollection, itemID, {
+        status: 'error', analysis_date: analysisDate, error,
       });
     }
-    
+
   }
 }
 

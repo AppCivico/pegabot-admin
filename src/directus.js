@@ -118,7 +118,7 @@ async function getFilesToProcess() {
     return []
   };
 
-  const { data: allFiles } = await client.getFiles();
+  const { data: allFiles } = await client.getFiles({ limit: -1 });
   const desiredFiles = [];
 
   // get details of all the files we want
@@ -153,7 +153,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       const zip = new AdmZip(res.data); // load zip buffer
       const zipEntries = zip.getEntries();
 
-      zipEntries.forEach((entry, i) => { // eslint-disable-line
+      zipEntries.forEach((entry, i) => {
         const { entryName } = entry;
 
         const isInvalidFile = help.checkInvalidFiles(entryName);
@@ -240,21 +240,25 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   const fileData = await client.uploadFiles({
     title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
   });
-  
+
   const fileID = fileData.data.id; // get the file id
-  let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
+  let itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   // itemID = itemID.substring(itemID.length - 2, fileName.indexOf('/'));
   itemID = itemID.match(/(\d){1,}/g);
-  
+
   await redis.set('current_file_directus_id', itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
   const updatedItem = await client.updateItem(userRequestsCollection, itemID, {
-    status: 'complete', output_file: fileID, analysis_date: analysisDate, error,
+    status: 'complete',
+    output_file: fileID,
+    analysis_date: analysisDate,
+    error,
+    progress: 100,
   });
 
   if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
-  
+
   await redis.del('current_file_directus_id');
 
   return updatedItem;
@@ -262,11 +266,15 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
 
 // save each file inside of the /out directory on direct
 async function getResults() {
-  const fileNames = await fs.readdirSync(outPath);
+  const fileNames = fs.readdirSync(outPath);
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const fileName = fileNames[i];
+
     const updatedItem = await saveFileToDirectus(fileName);
-    if (updatedItem && !updatedItem.error) await sendResultMail(updatedItem, fileName);
+    if (updatedItem && !updatedItem.error) {
+      // Send email
+      await sendResultMail(updatedItem, fileName);
+    }
   }
 }
 
