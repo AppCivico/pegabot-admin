@@ -1,14 +1,9 @@
-require('console-stamp')(console, '[HH:MM:ss.l]');
-
 import fs from 'fs';
 import json2xls from 'json2xls';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
 import getDirectusClient from './DirectusSDK';
-
-var access = fs.createWriteStream('/home/node/app_pegabots_admin/log/app.log');
-process.stdout.write = process.stderr.write = access.write.bind(access);
 
 const inPath = `${process.env.NODE_PATH}/in`;
 const tmpPath = `${process.env.NODE_PATH}/tmp`;
@@ -239,7 +234,7 @@ async function getOutputCSV() {
         if (result && result.data && result.hasOneResult) {
           const filepath = await saveResult(result);
           const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
-        
+
           fs.unlinkSync(`./tmp/${filename}`);
           if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
@@ -267,7 +262,7 @@ async function procedure() {
     await redis.set('current_processing', 0);
   } catch (error) {
     console.error(error);
-  
+
     // In case of any error, try to update both the file and redis
     await redis.set('current_processing', 0);
 
@@ -279,7 +274,7 @@ async function procedure() {
         status: 'error',
       });
     }
-    
+
   }
 }
 
