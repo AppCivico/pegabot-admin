@@ -166,7 +166,10 @@ async function getResults(profiles, filename) {
           console.info(`Processando o perfil ${screenName}...`);
 
           results[screenName] = await storage.getItem(screenName);
-          if (!results[screenName]) {
+          if (results[screenName]) {
+            hasOneResult = true;
+          }
+          else {
             // Make request to the pegabotAPI
             console.log('Fazendo request para o pegabot...');
             const reqAnswer = await help.requestPegabot(screenName);
@@ -175,7 +178,6 @@ async function getResults(profiles, filename) {
               // Cache response
               await storage.setItem(screenName, reqAnswer);
               results[screenName] = reqAnswer;
-
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
@@ -296,7 +298,6 @@ async function procedure() {
         status: 'error',
       });
     }
-
   }
 }
 
