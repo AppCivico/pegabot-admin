@@ -1,5 +1,6 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
+import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -122,9 +123,23 @@ async function getResults(profiles, filename) {
   const errorKey = `${filename}_error`;
   const allErrors = [];
 
+  // Init storage
+  // TODO Get storage directory from env
+  await storage.init({
+    dir: '/home/junior/projects/pegabot-admin/data/storage',
+    stringify: JSON.stringify,
+    parse: JSON.parse,
+    encoding: 'utf8',
+    logging: false,
+    ttl: false,
+    expiredInterval: 60 * 60 * 1000,
+    forgiveParseErrors: false,
+  });
+
   try {
     // check if we already analysed a part of this file
     const oldResult = await redis.get(resultKey);
+
     // save string result as json (if it exists)
     if (oldResult && typeof oldResult === 'string') results = JSON.parse(oldResult);
 
@@ -132,7 +147,7 @@ async function getResults(profiles, filename) {
       const line = profiles[i];
 
       // Savepoint
-      await redis.set(`filename_${filename}_current_line` , i);
+      await redis.set(`filename_${filename}_current_line`, i);
 
       // get the user key from the CSV
       const keyToUse = help.getCSVKey(line);
@@ -148,13 +163,20 @@ async function getResults(profiles, filename) {
           const error = { line: i, msg: 'Nome de perfil inválido! Tenha certeza de que é apenas um texto!' };
           allErrors.push(error); // store all errors
         } else {
-          // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-          if (!results[screenName]) { // eslint-disable-line no-lonely-if
-          // make request to the pegabotAPI
+          // If we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
+          console.info(`Processando o perfil ${screenName}...`);
+
+          results[screenName] = await storage.getItem(screenName);
+          if (!results[screenName]) {
+            // Make request to the pegabotAPI
+            console.log('Fazendo request para o pegabot...');
             const reqAnswer = await help.requestPegabot(screenName);
 
-            results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
+              // Cache response
+              await storage.setItem(screenName, reqAnswer);
+              results[screenName] = reqAnswer;
+
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
@@ -208,7 +230,7 @@ async function getOutputCSV() {
     for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
       const filename = fileNames[i];
 
-      console.log('[getOutputCSV] start processing filename: ' + filename);
+      console.info(`[getOutputCSV] start processing filename: ${filename}`);
 
       const analysedNow = itemStatuses[filename];
       // if file is being analysed right now, ignore it
@@ -221,7 +243,8 @@ async function getOutputCSV() {
         const content = await help.getFileContent(newPath);
 
         const { status: fileStatus } = await directus.getFileItem(filename);
-        // get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
+
+        // Get status of the item this file is supposed to represent and update it to "analysing" if it's not like that yet
         if (fileStatus !== 'analysing') await directus.updateFileStatus(filename, 'analysing');
         const result = await getResults(content, filename);
 
