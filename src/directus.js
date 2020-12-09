@@ -114,11 +114,11 @@ async function getFilesToProcess() {
   // no files to process were found
   if (!toProcess || !toProcess.data || toProcess.data.length === 0) {
     console.log('[getFilesToProcess] No files with status "waiting"');
-    
-    return []
+
+    return [];
   };
 
-  const { data: allFiles } = await client.getFiles();
+  const { data: allFiles } = await client.getFiles({ limit: -1 });
   const desiredFiles = [];
 
   // get details of all the files we want
@@ -240,12 +240,12 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   const fileData = await client.uploadFiles({
     title: newFileName, data: willSendthis.toString('base64'), filename_disk: newFileName, filename_download: newFileName,
   });
-  
+
   const fileID = fileData.data.id; // get the file id
   let   itemID = fileName.substr(0, fileName.indexOf('_')); // find the item this file should be uploaded to (numbers before the first underline)
   // itemID = itemID.substring(itemID.length - 2, fileName.indexOf('/'));
   itemID = itemID.match(/(\d){1,}/g);
-  
+
   await redis.set('current_file_directus_id', itemID);
 
   const analysisDate = help.dateMysqlFormat(new Date());
@@ -254,7 +254,7 @@ async function saveFileToDirectus(fileName, errors = [], whereToLoad = outPath) 
   });
 
   if (!updatedItem || !updatedItem.data || !updatedItem.data.id) return { error: 'Could not save result file to Directus' };
-  
+
   await redis.del('current_file_directus_id');
 
   return updatedItem;
