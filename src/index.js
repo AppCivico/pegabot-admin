@@ -12,6 +12,10 @@ if (fs.existsSync(logPath)) {
   process.stdout.write = process.stderr.write = access.write.bind(access);
 }
 
+process.on('uncaughtException', (err) => {
+  console.error((err && err.stack) ? err.stack : err);
+});
+
 (async () => {
   const shouldStart = process.env.NODE_ENV !== 'dev';
 
