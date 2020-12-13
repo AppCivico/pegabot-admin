@@ -146,7 +146,14 @@ async function getResults(profiles, filename) {
 
     let progress = 0;
     const profilesCount = profiles.length;
+
+    let progressOffset = Number.parseInt((profilesCount / 100), 10);
+    if (progressOffset < 10) { progressOffset = 10; } // Min offset
+    console.log(`progressOffset: ${progressOffset}`);
+
     for (let i = 0; i < profilesCount; i += 1) {
+      console.log(`currentLine: ${i + 1}`);
+
       const line = profiles[i];
 
       // Savepoint
@@ -211,9 +218,6 @@ async function getResults(profiles, filename) {
       progress = Math.round((100 - ((profilesCount - (i + 1)) * 100) / profilesCount) - 1);
       if (progress < 0) progress = 0;
       if (progress > 99) progress = 99;
-
-      let progressOffset = profilesCount / 100;
-      if (progressOffset < 10) { progressOffset = 10; } // Min offset
 
       if (i > 0 && i % progressOffset === 0) {
         const itemId = filename.substr(0, filename.indexOf('_'));
