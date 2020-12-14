@@ -1,6 +1,6 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
-import storage from 'node-persist';
+// import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -126,16 +126,16 @@ async function getResults(profiles, filename) {
   const allErrors = [];
 
   // Init storage
-  await storage.init({
-    dir: process.env.PEGABOT_ADMIN_CACHE,
-    stringify: JSON.stringify,
-    parse: JSON.parse,
-    encoding: 'utf8',
-    logging: false,
-    ttl: false,
-    expiredInterval: 60 * 60 * 1000,
-    forgiveParseErrors: false,
-  });
+  // await storage.init({
+  //   dir: process.env.PEGABOT_ADMIN_CACHE,
+  //   stringify: JSON.stringify,
+  //   parse: JSON.parse,
+  //   encoding: 'utf8',
+  //   logging: false,
+  //   ttl: false,
+  //   expiredInterval: 60 * 60 * 1000,
+  //   forgiveParseErrors: false,
+  // });
 
   try {
     // check if we already analysed a part of this file
@@ -173,22 +173,13 @@ async function getResults(profiles, filename) {
           const error = { line: i, msg: 'Nome de perfil inválido! Tenha certeza de que é apenas um texto!' };
           allErrors.push(error); // store all errors
         } else {
-          // If we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
-          console.info(`Processando o perfil ${screenName}...`);
-
-          results[screenName] = await storage.getItem(screenName);
-          if (results[screenName]) {
-            hasOneResult = true;
-          }
-          else {
-            // Make request to the pegabotAPI
-            console.log('Fazendo request para o pegabot...');
+          // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
+          if (!results[screenName]) { // eslint-disable-line no-lonely-if
+          // make request to the pegabotAPI
             const reqAnswer = await help.requestPegabot(screenName);
 
+            results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
-              // Cache response
-              await storage.setItem(screenName, reqAnswer);
-              results[screenName] = reqAnswer;
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
