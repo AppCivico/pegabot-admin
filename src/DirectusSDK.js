@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import DirectusSDK from '@directus/sdk-js';
+import DirectusSDK from './@directus/sdk-js';
 
 const directusUrl = process.env.DIRECTUS_URL;
 const directusProject = process.env.DIRECTUS_PROJECT;

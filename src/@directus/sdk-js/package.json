@@ -1,0 +1,153 @@
+{
+  "_args": [
+    [
+      "@directus/sdk-js@6.2.0",
+      "/home/junior/projects/pegabot-admin/src"
+    ]
+  ],
+  "_from": "@directus/sdk-js@6.2.0",
+  "_id": "@directus/sdk-js@6.2.0",
+  "_inBundle": false,
+  "_integrity": "sha512-FE0g+D0kSKquecVC2OPgKPB+941esOouIuDFYY6fgsSihKjc/8bKFgDe9einLcYNaOBy3OiNFQp71+B4w04l4w==",
+  "_location": "/@directus/sdk-js",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "@directus/sdk-js@6.2.0",
+    "name": "@directus/sdk-js",
+    "escapedName": "@directus%2fsdk-js",
+    "scope": "@directus",
+    "rawSpec": "6.2.0",
+    "saveSpec": null,
+    "fetchSpec": "6.2.0"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/@directus/sdk-js/-/sdk-js-6.2.0.tgz",
+  "_spec": "6.2.0",
+  "_where": "/home/junior/projects/pegabot-admin/src",
+  "author": {
+    "name": "RANGER Studio LLC"
+  },
+  "browser": "dist/umd/directus-sdk.min.js",
+  "bugs": {
+    "url": "https://github.com/directus/directus-sdk-js/issues"
+  },
+  "contributors": [
+    {
+      "name": "Rijk van Zanten",
+      "email": "rijkvanzanten@me.com"
+    },
+    {
+      "name": "Jan Biasi",
+      "email": "biasijan@gmail.com"
+    }
+  ],
+  "dependencies": {
+    "axios": "^0.19.0",
+    "base-64": "^0.1.0"
+  },
+  "description": "Directus SDK for JavaScript (Node and Browser)",
+  "devDependencies": {
+    "@types/base-64": "^0.1.3",
+    "@types/chai": "^4.1.7",
+    "@types/chai-datetime": "^0.0.32",
+    "@types/expect": "^24.3.0",
+    "@types/jsonwebtoken": "^8.3.7",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^12.6.2",
+    "@types/sinon": "^7.0.13",
+    "@types/sinon-chai": "^3.2.2",
+    "@typescript-eslint/eslint-plugin": "^1.11.0",
+    "@typescript-eslint/parser": "^1.11.0",
+    "chai": "^4.2.0",
+    "chai-datetime": "^1.5.0",
+    "chalk": "^2.4.2",
+    "coveralls": "^3.0.4",
+    "eslint": "^6.0.1",
+    "eslint-plugin-jest": "^23.13.2",
+    "jsonwebtoken": "^8.5.1",
+    "mocha": "^6.1.4",
+    "npm-run-all": "^4.1.5",
+    "nyc": "^15.1.0",
+    "prettier": "^2.0.5",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.15.0",
+    "sinon": "^9.0.2",
+    "sinon-chai": "^3.3.0",
+    "size-limit": "^1.3.7",
+    "source-map-support": "^0.5.12",
+    "ts-loader": "^7.0.5",
+    "ts-mocha": "^7.0.0",
+    "tslib": "^1.10.0",
+    "typescript": "^3.5.3",
+    "uglify-js": "^3.6.0"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "homepage": "https://docs.directus.io/sdk/js.html",
+  "keywords": [
+    "api",
+    "client",
+    "cms",
+    "directus",
+    "headless",
+    "javascript",
+    "node",
+    "sdk"
+  ],
+  "license": "MIT",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "name": "@directus/sdk-js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/directus/sdk-js.git"
+  },
+  "scripts": {
+    "build": "run-s build:*",
+    "build:cjs": "tsc --project tsconfig.json --module commonjs --target es5 --outDir dist/cjs",
+    "build:declaration": "tsc --project tsconfig.meta.json",
+    "build:es2015": "tsc --project tsconfig.json --module es2015 --target es2015 --outDir dist/es2015",
+    "build:esm": "tsc --project tsconfig.json --module es2015 --target es5 --outDir dist/esm",
+    "build:umd": "rollup dist/esm/index.js --format umd --name DirectusSDK --sourcemap --file dist/umd/directus-sdk.js --globals window:window,axios:axios,base-64:base64 --exports named --external axios,base-64",
+    "build:umd-min": "uglifyjs --output dist/umd/directus-sdk.min.js --mangle --compress --source-map --source-map-url -- dist/umd/directus-sdk.js",
+    "coverage": "nyc mocha -r ts-node/register -r source-map-support/register  -p ./tsconfig.test.json \"test/**/*.spec.ts\" --recursive && nyc report",
+    "lint": "run-s lint:*",
+    "lint:source": "eslint ./src/**/*.ts -c ./.eslintrc.js",
+    "lint:test": "eslint ./test/**/*.ts -c ./.eslintrc.test.js",
+    "prebuild": "rimraf dist",
+    "prettier": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"**/*.json\"",
+    "release": "npm version -m \":rocket: Release %s\"",
+    "size-limit": "size-limit",
+    "size-limit:stats": "size-limit --why",
+    "test": "ts-mocha -p ./tsconfig.test.json \"test/**/*.spec.ts\" --recursive --exit"
+  },
+  "size-limit": [
+    {
+      "limit": "12 KB",
+      "path": "dist/umd/directus-sdk.min.js"
+    },
+    {
+      "limit": "13 KB",
+      "path": "dist/cjs/index.js"
+    },
+    {
+      "limit": "12 KB",
+      "path": "dist/es2015/index.js"
+    },
+    {
+      "limit": "12 KB",
+      "path": "dist/esm/index.js"
+    }
+  ],
+  "types": "dist/types/index.d.ts",
+  "version": "6.2.0"
+}

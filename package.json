@@ -37,7 +37,6 @@
     "@babel/plugin-transform-runtime": "^7.10.3",
     "@babel/preset-env": "^7.10.3",
     "@babel/register": "^7.10.3",
-    "@directus/sdk-js": "^6.2.0",
     "adm-zip": "^0.4.16",
     "axios": "^0.19.2",
     "babel-plugin-module-resolver": "^4.0.0",
