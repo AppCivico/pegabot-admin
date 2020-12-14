@@ -169,6 +169,8 @@ async function getResults(profiles, filename) {
       } else {
         const screenName = help.formatScreenname(line[keyToUse]); // get the screenname
 
+        console.log(`Processando o perfil ${screenName}`);
+
         if (!screenName) { // if the screenname is not valid, save the error
           const error = { line: i, msg: 'Nome de perfil inválido! Tenha certeza de que é apenas um texto!' };
           allErrors.push(error); // store all errors
