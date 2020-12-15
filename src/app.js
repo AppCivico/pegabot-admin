@@ -1,6 +1,6 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
-import storage from 'node-persist';
+// import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -177,18 +177,11 @@ async function getResults(profiles, filename) {
         } else {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
           if (!results[screenName]) { // eslint-disable-line no-lonely-if
-            // Try to get result from persistent cache
-            let reqAnswer = await storage.getItem(screenName);
-            if (!reqAnswer) {
-              // make request to the pegabotAPI
-              reqAnswer = await help.requestPegabot(screenName);
-            }
-
+            // make request to the pegabotAPI
+            const reqAnswer = await help.requestPegabot(screenName);
             results[screenName] = reqAnswer;
-            if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
-              // Keep the result on internal cache
-              await storage.setItem(screenName, reqAnswer);
 
+            if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
