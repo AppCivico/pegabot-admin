@@ -1,6 +1,6 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
-import storage from 'node-persist';
+// import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -126,16 +126,16 @@ async function getResults(profiles, filename) {
   const allErrors = [];
 
   // Init storage
-  await storage.init({
-    dir: process.env.PEGABOT_ADMIN_CACHE,
-    stringify: JSON.stringify,
-    parse: JSON.parse,
-    encoding: 'utf8',
-    logging: false,
-    ttl: false,
-    expiredInterval: 60 * 60 * 1000,
-    forgiveParseErrors: false,
-  });
+  // await storage.init({
+  //   dir: process.env.PEGABOT_ADMIN_CACHE,
+  //   stringify: JSON.stringify,
+  //   parse: JSON.parse,
+  //   encoding: 'utf8',
+  //   logging: false,
+  //   ttl: false,
+  //   expiredInterval: 60 * 60 * 1000,
+  //   forgiveParseErrors: false,
+  // });
 
   try {
     // check if we already analysed a part of this file
@@ -177,13 +177,9 @@ async function getResults(profiles, filename) {
         } else {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
           if (!results[screenName]) { // eslint-disable-line no-lonely-if
-            let reqAnswer = await storage.getItem(screenName);
-            if (!reqAnswer) {
-              reqAnswer = await help.requestPegabot(screenName);
-              await storage.setItem(screenName, reqAnswer);
-            }
-
             // make request to the pegabotAPI
+            const reqAnswer = await help.requestPegabot(screenName);
+
             // results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
               hasOneResult = true;
