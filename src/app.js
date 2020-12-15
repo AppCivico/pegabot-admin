@@ -179,8 +179,8 @@ async function getResults(profiles, filename) {
           if (!results[screenName]) { // eslint-disable-line no-lonely-if
             // make request to the pegabotAPI
             const reqAnswer = await help.requestPegabot(screenName);
+            results[screenName] = reqAnswer;
 
-            // results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
               hasOneResult = true;
 
