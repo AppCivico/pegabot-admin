@@ -4,8 +4,9 @@ import { promisify } from 'util';
 const host = process.env.REDIS_HOST;
 const port = process.env.REDIS_PORT;
 const password = process.env.REDIS_PASSWORD;
+const redisUrl = process.env.REDIS_URL;
 
-const redisClient = redis.createClient({ host, port, password });
+const redisClient = redis.createClient(redisUrl);
 
 redisClient.on('error', (error) => {
   console.error('Error on redis client');

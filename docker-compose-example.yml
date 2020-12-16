@@ -39,17 +39,16 @@ services:
       - ./data/uploads:/var/directus/public/uploads
     networks:
       - database
+
   redis:
     image: "redis"
-    container_name: pegabot-redis
-    command: "redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}"
-    volumes:
-    - ./redis.conf:/usr/local/etc/redis/redis.conf
-    ports:
-     - "${REDIS_PORT}:${REDIS_PORT}"
+    container_name: pegabot-admin-redis
+    expose:
+      - 6379
     restart: unless-stopped
     networks:
       - redis
+
   app:
     container_name: pegabot-admin-app
     build:
