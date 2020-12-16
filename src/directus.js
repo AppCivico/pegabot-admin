@@ -134,6 +134,7 @@ async function getFilesToProcess() {
 }
 
 async function saveFilesToDisk(files, whereToSave = inPath) {
+  console.log('Saving files on disk...');
   const client = await getDirectusClient();
 
   for (const file of files) { // eslint-disable-line
@@ -190,6 +191,7 @@ async function saveFilesToDisk(files, whereToSave = inPath) {
       if (invalidFile) console.error('invalidFile', invalidFile);
     }
   }
+  console.log('Files saved on disk!');
 }
 
 async function sendMail(item, filelink) {
@@ -270,10 +272,15 @@ async function getResults() {
   for (let i = 0; i < fileNames.length; i++) { // eslint-disable-line
     const fileName = fileNames[i];
 
+    console.log(`Saving file ${fileName} to directus...`);
     const updatedItem = await saveFileToDirectus(fileName);
+    console.log('File saved!');
+
     if (updatedItem && !updatedItem.error) {
       // Send email
+      console.log('Sending results email');
       await sendResultMail(updatedItem, fileName);
+      console.log('Email sent!');
     }
   }
 }
