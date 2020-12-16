@@ -1,6 +1,6 @@
 import fs from 'fs';
 import json2xls from 'json2xls';
-// import storage from 'node-persist';
+import storage from 'node-persist';
 import redis from './redis';
 import directus from './directus';
 import help from './helper';
@@ -90,15 +90,17 @@ function formatResults(data) {
 
 async function saveResult(result) {
   const { data, filename } = result;
+  console.log('Formatting results...')
   const content = formatResults(data);
 
+  console.log('Converting data from JSON to XLSX...')
   const xlsxData = json2xls(content);
 
   let newFilename = filename.substr(0, filename.indexOf('.'));
   newFilename += '_results.xlsx';
   const filepath = `${outPath}/${newFilename}`;
 
-  await fs.writeFileSync(filepath, xlsxData, 'binary');
+  fs.writeFileSync(filepath, xlsxData, 'binary');
 
   console.log(`[saveResult] filepath: ${filepath}`);
 
@@ -126,16 +128,16 @@ async function getResults(profiles, filename) {
   const allErrors = [];
 
   // Init storage
-  // await storage.init({
-  //   dir: process.env.PEGABOT_ADMIN_CACHE,
-  //   stringify: JSON.stringify,
-  //   parse: JSON.parse,
-  //   encoding: 'utf8',
-  //   logging: false,
-  //   ttl: false,
-  //   expiredInterval: 60 * 60 * 1000,
-  //   forgiveParseErrors: false,
-  // });
+  await storage.init({
+    dir: process.env.PEGABOT_ADMIN_CACHE,
+    stringify: JSON.stringify,
+    parse: JSON.parse,
+    encoding: 'utf8',
+    logging: false,
+    ttl: false,
+    expiredInterval: 60 * 60 * 1000,
+    forgiveParseErrors: false,
+  });
 
   try {
     // check if we already analysed a part of this file
@@ -177,11 +179,18 @@ async function getResults(profiles, filename) {
         } else {
           // if we already have the analysis result for this screenname, dont analyse it again. (screename must exist)
           if (!results[screenName]) { // eslint-disable-line no-lonely-if
-            // make request to the pegabotAPI
-            const reqAnswer = await help.requestPegabot(screenName);
-            results[screenName] = reqAnswer;
+            // Try to get result from persistent cache
+            let reqAnswer = await storage.getItem(screenName);
+            if (!reqAnswer) {
+              // make request to the pegabotAPI
+              reqAnswer = await help.requestPegabot(screenName);
+            }
 
+            results[screenName] = reqAnswer;
             if (reqAnswer && reqAnswer.profiles && !reqAnswer.error) {
+              // Keep the result on internal cache
+              await storage.setItem(screenName, reqAnswer);
+
               hasOneResult = true;
 
               const newRateLimit = reqAnswer.rate_limit;
@@ -227,6 +236,7 @@ async function getResults(profiles, filename) {
       filename, data: results, errors: allErrors, hasOneResult,
     };
   } catch (error) {
+    console.error(error);
     return { filename, error, errors: allErrors };
   }
 }
@@ -234,7 +244,9 @@ async function getResults(profiles, filename) {
 const itemStatuses = {};
 
 async function getOutputCSV() {
+  console.log('Running sendInToTmp...');
   await sendInToTmp();
+  console.log('Files moved to tmp dir!');
 
   const now = new Date();
   let nextExecutionTime = null;
@@ -277,12 +289,24 @@ async function getOutputCSV() {
         if (result && result.waitTime) break;
 
         if (result && result.data && result.hasOneResult) {
+          console.log('Saving result...');
           const filepath = await saveResult(result);
-          const updatedItem = await directus.saveFileToDirectus(filepath, result.errors);
+          console.log('Results saved!');
+          console.log(`Saving file ${filepath} to directus!`);
+          const errors = result.errors.slice(0, 400).map((e) => {
+            delete e.error?.error;
+            return e;
+          });
+          const updatedItem = await directus.saveFileToDirectus(filepath, errors);
+          console.log('File saved on directus!');
 
+          console.log('Removing temporary file...');
           fs.unlinkSync(`./tmp/${filename}`);
+          console.log('Temporary file removed!');
           if (updatedItem && !updatedItem.error) await directus.sendResultMail(updatedItem, filepath);
         } else {
+          console.error('Saving errors...');
+          console.dir(result.errors);
           await directus.saveError(result.filename, result.errors);
         }
       }
